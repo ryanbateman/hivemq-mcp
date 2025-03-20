@@ -1,0 +1,396 @@
+# MCP-TS-TEMPLATE DEVELOPER CHEAT SHEET
+
+## 📂 Project Structure
+```
+mcp-ts-template
+├── docs
+    └── tree.md
+├── scripts
+    ├── clean.ts
+    └── tree.ts
+├── src
+    ├── config
+    │   ├── envConfig.ts
+    │   ├── index.ts
+    │   ├── mcpConfig.ts
+    │   └── README.md
+    ├── mcp-server
+    │   ├── resources
+    │   │   └── echoResource
+    │   │   │   ├── getEchoMessage.ts
+    │   │   │   ├── index.ts
+    │   │   │   ├── README.md
+    │   │   │   └── types.ts
+    │   ├── tools
+    │   │   └── echoTool
+    │   │   │   ├── echoMessage.ts
+    │   │   │   ├── index.ts
+    │   │   │   ├── README.md
+    │   │   │   └── types.ts
+    │   ├── utils
+    │   │   ├── README.md
+    │   │   └── registrationHelper.ts
+    │   ├── README.md
+    │   └── server.ts
+    ├── types-global
+    │   ├── errors.ts
+    │   ├── mcp.ts
+    │   ├── README.md
+    │   └── tool.ts
+    ├── utils
+    │   ├── errorHandler.ts
+    │   ├── idGenerator.ts
+    │   ├── index.ts
+    │   ├── logger.ts
+    │   ├── rateLimiter.ts
+    │   ├── README.md
+    │   ├── requestContext.ts
+    │   ├── sanitization.ts
+    │   └── security.ts
+    └── index.ts
+```
+
+## 🚀 Quick Start Commands
+```bash
+npm run build      # Compile TypeScript to JavaScript
+npm run clean      # Clean build artifacts
+npm run rebuild    # Clean and rebuild project
+npm run tree       # Generate directory tree
+npm run start      # Start the MCP server
+```
+
+## 🛠️ Server Setup & Lifecycle
+
+### Main Entry Point (src/index.ts)
+```typescript
+// Start the server and spawn MCP subservers
+import { createMcpServer } from "./mcp-server/server.js";
+
+// Main startup function
+const start = async () => {
+  // Create startup context
+  const startupContext = createRequestContext({
+    operation: 'ServerStartup',
+    appName: 'mcp-ts-template',
+    environment: envConfig().environment
+  });
+  
+  // Spawn MCP servers
+  const mcpShutdownFn = await spawnMcpServers();
+  
+  // Create main server
+  const server = await createMcpServer();
+  
+  // Register signal handlers
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+};
+
+// Start the application
+start();
+```
+
+### Server Creation (src/mcp-server/server.ts)
+```typescript
+// Create a new MCP server with tools and resources
+export const createMcpServer = async () => {
+  // Load package info
+  const packageInfo = await loadPackageInfo();
+  
+  // Create server instance
+  const server = new McpServer({
+    name: packageInfo.name,
+    version: packageInfo.version
+  });
+  
+  // Register tools and resources in parallel
+  await Promise.allSettled([
+    registerEchoTool(server),
+    registerEchoResource(server)
+  ]);
+  
+  // Connect using stdio transport
+  await server.connect(new StdioServerTransport());
+  
+  return server;
+};
+```
+
+## 🧩 Creating MCP Components
+
+### Resource Registration (src/mcp-server/resources/echoResource/index.ts)
+```typescript
+// Register an echo resource that responds to URIs like "echo://hello"
+export const registerEchoResource = async (server: McpServer): Promise<void> => {
+  return registerResource(
+    server,
+    { name: "echo-resource" },
+    async (server, resourceLogger: ChildLogger) => {
+      // Create resource template
+      const template = new ResourceTemplate(
+        "echo://{message}",
+        {
+          list: async () => ({
+            resources: [{
+              uri: "echo://hello",
+              name: "Default Echo Message",
+              description: "A simple echo resource example"
+            }]
+          }),
+          complete: {}
+        }
+      );
+
+      // Register with full configuration
+      server.resource(
+        "echo-resource",
+        template,
+        {
+          name: "Echo Message",
+          description: "A simple echo resource that returns a message",
+          mimeType: "application/json",
+          querySchema: z.object({/*...*/}),
+          examples: [/*...*/]
+        },
+        async (uri, params) => {
+          // Resource handler implementation
+          return await ErrorHandler.tryCatch(/*...*/);
+        }
+      );
+    }
+  );
+};
+```
+
+### Tool Registration (src/mcp-server/tools/echoTool/index.ts)
+```typescript
+// Register an echo tool that processes and formats messages
+export const registerEchoTool = async (server: McpServer): Promise<void> => {
+  return registerTool(
+    server,
+    { name: "echo_message" },
+    async (server, toolLogger: ChildLogger) => {
+      // Register the tool with simplified SDK pattern
+      server.tool(
+        "echo_message", 
+        {
+          message: z.string().min(1).max(1000).describe(
+            'The message to echo back (1-1000 characters)'
+          ),
+          mode: z.enum(ECHO_MODES).optional().default('standard').describe(
+            'How to format the echoed message: standard (as-is), uppercase, or lowercase'
+          ),
+          repeat: z.number().int().min(1).max(10).optional().default(1),
+          timestamp: z.boolean().optional().default(true)
+        },
+        async (params) => {
+          return await ErrorHandler.tryCatch(
+            async () => {
+              const response = processEchoMessage(params);
+              return { content: [{ type: "text", text: JSON.stringify(response, null, 2) }] };
+            },
+            { /* error handling options */ }
+          );
+        }
+      );
+    }
+  );
+};
+```
+
+### Registration Helper (src/mcp-server/utils/registrationHelper.ts)
+```typescript
+// Use these helpers for consistent registration pattern
+import { registerTool } from "../../utils/registrationHelper.js";
+import { registerResource } from "../../utils/registrationHelper.js";
+
+// Example usage:
+registerTool(server, { name: "your_tool_name" }, 
+  async (server, logger) => {
+    // Tool registration logic
+  }
+);
+```
+
+## 🔒 Error Handling
+
+### Using ErrorHandler (src/utils/errorHandler.ts)
+```typescript
+import { ErrorHandler } from "./utils/errorHandler.js";
+
+// Try/catch pattern
+const result = await ErrorHandler.tryCatch(
+  async () => {
+    // Operation that might fail
+    return await someAsyncOperation();
+  },
+  {
+    operation: 'operation name',
+    context: { additionalContext: 'value' },
+    input: { param1: 'value1' },
+    errorCode: BaseErrorCode.INTERNAL_ERROR,
+    errorMapper: (error) => new McpError(
+      BaseErrorCode.VALIDATION_ERROR,
+      `Custom error message: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+);
+
+// If result instanceof Error, handle the error
+```
+
+### Custom Errors (src/types-global/errors.ts)
+```typescript
+import { BaseErrorCode, McpError } from "./types-global/errors.js";
+
+throw new McpError(
+  BaseErrorCode.INVALID_REQUEST,
+  'Error message'
+);
+```
+
+## ⚙️ Configuration
+
+### Environment Config (src/config/envConfig.ts)
+```typescript
+import { envConfig } from "./config/envConfig.js";
+
+// Access environment variables
+const environment = envConfig().environment;
+const logLevel = envConfig().logLevel;
+const rateLimitSettings = {
+  windowMs: envConfig().rateLimit.windowMs || 60000,
+  maxRequests: envConfig().rateLimit.maxRequests || 100
+};
+```
+
+### MCP Server Config (src/config/mcpConfig.ts)
+```typescript
+import { enabledMcpServers } from "./config/mcpConfig.js";
+
+// Get configured MCP servers
+const mcpServers = enabledMcpServers();
+```
+
+## 📝 Logging
+
+### Using Logger (src/utils/logger.ts)
+```typescript
+import { logger } from "./utils/logger.js";
+
+// Basic logging
+logger.info("Information message", { context: 'value' });
+logger.error("Error message", { error: errorObj });
+
+// Child loggers for components
+const serverLogger = logger.createChildLogger({
+  service: 'MCPServer',
+  serverId: idGenerator.generateRandomString(8),
+  environment: envConfig().environment
+});
+
+// Component-specific logger
+const toolLogger = logger.createChildLogger({
+  module: 'EchoTool',
+  operation: 'registration'
+});
+
+toolLogger.debug("Debug message");
+```
+
+## 🛡️ Security
+
+### Input Sanitization (src/utils/security.ts)
+```typescript
+import { sanitizeInput } from "./utils/security.js";
+
+// Sanitize user inputs
+const safeName = sanitizeInput.string(name);
+const safePath = sanitizeInput.path(pkgPath);
+const safeHtml = sanitizeInput.html(userHtml);
+```
+
+### Request Context (src/utils/requestContext.ts)
+```typescript
+import { createRequestContext } from "./utils/security.js";
+
+// Create context for operation tracking
+const context = createRequestContext({
+  operation: 'OperationName',
+  userId: 'user-id'
+});
+```
+
+## 🔄 Process Management
+
+### Spawning MCP Servers (src/index.ts)
+```typescript
+// Load configured MCP servers
+const mcpServers = enabledMcpServers();
+
+// Spawn child processes
+const childProc = spawn(serverConfig.command, serverConfig.args, {
+  env: { ...process.env, ...serverConfig.env },
+  stdio: ['pipe', 'pipe', 'pipe']
+});
+
+// Handle process events
+childProc.stdout?.on('data', (data: Buffer) => {
+  const output = data.toString().trim();
+  if (output) {
+    processLogger.debug(`stdout:`, { output: output.substring(0, 500) });
+  }
+});
+
+childProc.on('exit', (code: number | null, signal: string | null) => {
+  // Handle process exit
+});
+```
+
+### Graceful Shutdown (src/index.ts)
+```typescript
+// Register signal handlers
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+// Implement shutdown function
+const shutdown = async (signal: string) => {
+  // Close MCP servers
+  if (mcpServerProcesses.size > 0) {
+    await shutdownMcpServers();
+  }
+
+  // Close main server
+  if (server) {
+    await server.close();
+  }
+
+  process.exit(0);
+};
+```
+
+## 🧩 MCP SDK Integration
+
+### SDK Dependencies (package.json)
+- `@modelcontextprotocol/sdk`: Main MCP SDK for server/client implementation
+- Version used: ^1.7.0
+- Key schemas: `ListResourcesRequestSchema`, `ReadResourceRequestSchema`, etc.
+
+### Schema Types (from @modelcontextprotocol/sdk/types.js)
+```typescript
+import {
+  CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
+```
+
+### Input Validation with Zod
+```typescript
+// Define input schema with zod
+{
+  message: z.string().min(1).max(1000).describe(
+    'The message to echo back (1-1000 characters)'
+  ),
+  mode: z.enum(['standard', 'uppercase', 'lowercase']).optional().default('standard')
+}
