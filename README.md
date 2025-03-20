@@ -1,15 +1,24 @@
 # MCP TypeScript Template
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Model Context Protocol](https://img.shields.io/badge/MCP-1.0-green.svg)](https://modelcontextprotocol.ai/)
-[![Version](https://img.shields.io/badge/Version-0.1.0-blue.svg)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+[![Model Context Protocol](https://img.shields.io/badge/MCP-1.7.0-green.svg)](https://modelcontextprotocol.io/)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Status](https://img.shields.io/badge/Status-Alpha-orange.svg)]()
-[![GitHub](https://img.shields.io/github/stars/yourusername/mcp-ts-template?style=social)](https://github.com/yourusername/mcp-ts-template)
+[![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
+[![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
 
-A beginner-friendly foundation for building Model Context Protocol (MCP) servers (and in the future also clients) with TypeScript. This template provides a comprehensive starting point with production-ready utilities, well-structured code, and working examples for building an MCP server.
+A beginner-friendly foundation for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers (and in the future also clients) with TypeScript. This template provides a comprehensive starting point with production-ready utilities, well-structured code, and working examples for building an MCP server.
 
 Copy this repo to kickstart your own MCP server and set your **vibe code** session up for success!
+
+## Using this template as your repo will get you:
+
+- **Utilities**: A set of reusable utilities for logging, error handling, ID generation, rate limiting, and request context management.
+- **Type Safety**: Strong typing with TypeScript to catch errors at compile time.
+- **Security**: Built-in security features to protect against common vulnerabilities.
+- **Error Handling**: A robust error handling system that categorizes and formats errors consistently.
+- **Documentation**: Comprehensive documentation for tools and resources, including usage examples and implementation details.
+- **Example Implementations**: Working examples of [echo_message (tool)](src/mcp-server/tools/echoTool/README.md) and [echo://hello (resource)](src/mcp-server/resources/echoResource/README.md) to help you get started quickly.
 
 > **.clinerules**: This repository includes a [.clinerules](.clinerules) file that serves as a developer cheat sheet for your LLM coding agent with quick reference for the codebase patterns, file locations, and code snippets. When copying this template for your own project, be sure to update the cheat sheet to reflect your modifications and additions.
 
@@ -34,7 +43,6 @@ Copy this repo to kickstart your own MCP server and set your **vibe code** sessi
   - [Adding a New Tool](#adding-a-new-tool)
   - [Adding a New Resource](#adding-a-new-resource)
 - [Future Plans](#future-plans)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Overview
@@ -108,7 +116,7 @@ Core Components:
 - **Logging System**: Structured logging with sensitive data redaction
 - **Error Handling**: Centralized error processing with consistent patterns
 - **MCP Server**: Protocol implementation for tools and resources
-- **Validation Layer**: Input validation using Zod schemas
+- **Validation Layer**: Input validation using [Zod](https://github.com/colinhacks/zod) schemas
 - **Utilities**: Reusable utility functions for common operations
 
 ## Features
@@ -153,8 +161,8 @@ Core Components:
 
 ### Prerequisites
 
-- Node.js (v18+)
-- npm or yarn
+- [Node.js (v18+)](https://nodejs.org/)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
 ### Setup
 
@@ -210,7 +218,7 @@ The [configuration system](src/config/README.md) provides a flexible way to mana
 
 The codebase follows a modular structure:
 
-```
+```bash
 src/
 ├── config/                 # Configuration management
 │   ├── envConfig.ts        # Environment variable handling
@@ -239,7 +247,7 @@ src/
 │   ├── sanitization.ts     # Input sanitization
 │   └── security.ts         # Security utilities
 │
-└── index.ts                # Application entry point
+└── [index.ts](src/index.ts)                # Application entry point
 .clinerules                 # Developer cheat sheet for LLM coding agent
 ```
 
@@ -265,11 +273,11 @@ See the [Echo Resource documentation](src/mcp-server/resources/echoResource/READ
 
 ### Adding a New Tool
 
-1. Create a new directory under `src/mcp-server/tools/`
+1. Create a new directory under [`src/mcp-server/tools/`](src/mcp-server/tools/)
 2. Define types and schemas in a `types.ts` file
 3. Implement the handler in a dedicated file
 4. Create an `index.ts` file that registers the tool
-5. Add your tool to the server registration in `src/mcp-server/server.ts`
+5. Add your tool to the server registration in [`src/mcp-server/server.ts`](src/mcp-server/server.ts)
 
 Example tool registration:
 
@@ -295,11 +303,11 @@ await registerMyTool(mcpServer);
 
 ### Adding a New Resource
 
-1. Create a new directory under `src/mcp-server/resources/`
+1. Create a new directory under [`src/mcp-server/resources/`](src/mcp-server/resources/)
 2. Define types and schemas in a `types.ts` file
 3. Implement the handler in a dedicated file
 4. Create an `index.ts` file that registers the resource
-5. Add your resource to the server registration in `src/mcp-server/server.ts`
+5. Add your resource to the server registration in [`src/mcp-server/server.ts`](src/mcp-server/server.ts)
 
 ## Future Plans
 
@@ -330,5 +338,5 @@ limitations under the License.
 ---
 
 <div align="center">
-Built with the Model Context Protocol
+Built with the <a href="https://modelcontextprotocol.io/">Model Context Protocol</a>
 </div>
