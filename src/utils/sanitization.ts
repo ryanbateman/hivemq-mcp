@@ -1,8 +1,8 @@
 import path from 'path';
-import normalize from 'path-normalize';
+// import normalize from 'path-normalize'; // Removed - use path.normalize
 import sanitizeHtml from 'sanitize-html';
 import validator from 'validator';
-import * as xssFilters from 'xss-filters';
+// import * as xssFilters from 'xss-filters'; // Removed - use sanitizeHtml
 import { BaseErrorCode, McpError } from '../types-global/errors.js';
 import { logger } from './logger.js';
 
@@ -149,10 +149,10 @@ export class Sanitization {
             this.convertAttributesFormat(options.allowedAttributes) : 
             undefined
         });
-        
+          
       case 'attribute':
-        // Use xss-filters for HTML attributes
-        return xssFilters.inHTMLData(input);
+        // Strip HTML tags for attribute context
+        return sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} });
           
       case 'url':
         // Validate and sanitize URL
@@ -174,8 +174,8 @@ export class Sanitization {
         
       case 'text':
       default:
-        // Use XSS filters for basic text
-        return xssFilters.inHTMLData(input);
+        // Strip HTML tags for basic text context
+        return sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} });
     }
   }
 
@@ -200,8 +200,8 @@ export class Sanitization {
         throw new Error('JavaScript protocol not allowed');
       }
       
-      // Sanitize and return
-      return validator.trim(xssFilters.uriInHTMLData(input));
+      // Sanitize and return (removed xssFilters)
+      return validator.trim(input);
     } catch (error) {
       throw new McpError(
         BaseErrorCode.VALIDATION_ERROR,
@@ -223,8 +223,8 @@ export class Sanitization {
         throw new Error('Empty path');
       }
       
-      // Apply path normalization (resolves '..' and '.' segments properly)
-      let normalized = normalize(input);
+      // Apply path normalization using built-in path module
+      let normalized = path.normalize(input);
       
       // Convert backslashes to forward slashes if toPosix is true
       if (options.toPosix) {

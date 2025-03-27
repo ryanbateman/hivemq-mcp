@@ -1,9 +1,13 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js"; // Add .js
 import { z } from 'zod';
-import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
-import { ErrorHandler } from '../../../utils/errorHandler.js';
-import { ChildLogger } from '../../../utils/logger.js';
-import { registerResource } from '../../utils/registrationHelper.js';
+import { BaseErrorCode, McpError } from '../../../types-global/errors.js'; // Add .js
+import { ErrorHandler } from '../../../utils/errorHandler.js'; // Add .js
+import { logger } from '../../../utils/logger.js'; // Add .js
+
+// Define context for this resource module
+const resourceModuleContext = {
+  module: 'EchoResourceRegistration'
+};
 
 /**
  * Process the echo resource request
@@ -25,20 +29,20 @@ const processEchoResource = (uri: URL, params: { message?: string }) => {
 };
 
 /**
- * Register the echo resource with the MCP server
- * 
- * This function creates and registers the echo resource which returns a message
- * provided in the query parameters. It configures the resource with appropriate
- * metadata, rate limiting, and caching settings.
+ * Register the echo resource directly with the MCP server instance.
  * 
  * @param server - The MCP server instance to register the resource with
  * @returns Promise resolving when registration is complete
  */
 export const registerEchoResource = async (server: McpServer): Promise<void> => {
-  return registerResource(
-    server,
-    { name: "echo-resource" },
-    async (server, resourceLogger: ChildLogger) => {
+  const resourceName = "echo-resource";
+  const registrationContext = { ...resourceModuleContext, resourceName };
+
+  logger.info(`Registering resource: ${resourceName}`, registrationContext);
+
+  // Use ErrorHandler for the registration process itself
+  await ErrorHandler.tryCatch(
+    async () => {
       // Create resource template
       const template = new ResourceTemplate(
         "echo://{message}",
@@ -56,14 +60,10 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
         }
       );
 
-      // Register the resource
+      // Register the resource directly using server.resource()
       server.resource(
-        // Resource name
-        "echo-resource",
-        
-        // Resource template
+        resourceName,
         template,
-        
         // Resource metadata
         {
           name: "Echo Message",
@@ -86,9 +86,12 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           ],
         },
         
-        // Resource handler
+        // Resource handler - uses global logger if needed
         async (uri, params) => {
-          // Use ErrorHandler.tryCatch for consistent error handling
+          const handlerContext = { ...registrationContext, operation: 'handleRequest', uri: uri.href, params };
+          logger.debug("Handling echo resource request", handlerContext);
+          
+          // Use ErrorHandler.tryCatch for the handler logic
           return await ErrorHandler.tryCatch(
             async () => {
               const responseData = processEchoResource(uri, params);
@@ -103,19 +106,32 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
               };
             },
             {
-              operation: 'processing echo resource',
+              operation: 'processing echo resource handler',
+              context: handlerContext, // Pass handler context to error handler
               input: { uri: uri.href, params },
               // Provide custom error mapping for better error messages
               errorMapper: (error) => new McpError(
                 BaseErrorCode.INTERNAL_ERROR,
-                `Error processing echo resource: ${error instanceof Error ? error.message : 'Unknown error'}`
+                `Error processing echo resource: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                { uri: uri.href } // Context for McpError
               )
             }
           );
         }
       );
       
-      resourceLogger.info("Echo resource handler registered");
+      logger.info(`Resource registered successfully: ${resourceName}`, registrationContext);
+    },
+    {
+      operation: `registering resource ${resourceName}`,
+      context: registrationContext, // Context for registration error
+      errorCode: BaseErrorCode.INTERNAL_ERROR,
+      errorMapper: (error) => new McpError(
+        error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
+        `Failed to register resource '${resourceName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { resourceName } // Context for McpError
+      ),
+      critical: true // Registration failure is critical
     }
   );
 };

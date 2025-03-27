@@ -1,13 +1,13 @@
-import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
-import { ErrorContext, ErrorHandler } from '../../../utils/errorHandler.js';
-import { logger } from '../../../utils/logger.js';
-import { OperationContext, sanitizeInput, sanitizeInputForLogging } from '../../../utils/security.js';
-import { EchoToolInput, EchoToolInputSchema, EchoToolResponse } from './types.js';
+import { BaseErrorCode, McpError } from '../../../types-global/errors.js'; // Add .js
+import { ErrorContext, ErrorHandler } from '../../../utils/errorHandler.js'; // Add .js
+import { logger } from '../../../utils/logger.js'; // Add .js
+import { OperationContext, sanitizeInput, sanitizeInputForLogging } from '../../../utils/security.js'; // Add .js
+import { EchoToolInput, EchoToolInputSchema, EchoToolResponse } from './types.js'; // Add .js
 
-// Create tool-specific logger with context
-const toolLogger = logger.createChildLogger({
-  service: 'EchoTool'
-});
+// Define context for this tool module
+const toolModuleContext = {
+  module: 'EchoTool'
+};
 
 export const echoMessage = async (
   input: unknown,
@@ -16,11 +16,14 @@ export const echoMessage = async (
   // Extract request ID from context or generate a new one
   const requestId = context.requestContext?.requestId || `echo_${Date.now()}`;
   
+  // Combine module and request context for logging
+  const logContext = { ...toolModuleContext, requestId };
+
   // Create error context for consistent error handling
   const errorContext: ErrorContext = {
     requestId,
     toolName: 'echo_message',
-    userId: 'anonymous', // Removed user.id reference since auth was removed
+    userId: 'anonymous', // Assuming anonymous access
     requestTime: context.requestContext?.timestamp || new Date().toISOString()
   };
 
@@ -28,8 +31,8 @@ export const echoMessage = async (
   const sanitizedInput = sanitizeInputForLogging(input);
 
   // Log the incoming request with safe context information
-  toolLogger.info("Echo tool request received", { 
-    requestId,
+  logger.info("Echo tool request received", { 
+    ...logContext,
     rawInputType: typeof input,
     isObject: input !== null && typeof input === 'object',
     sanitizedInput
@@ -46,8 +49,8 @@ export const echoMessage = async (
         context: 'text' // Treat as plain text
       });
     } catch (validationError) {
-      toolLogger.warn("Echo tool validation error", { 
-        requestId,
+      logger.warn("Echo tool validation error", { 
+        ...logContext,
         error: validationError instanceof Error ? validationError.message : 'Unknown validation error',
         rawInput: typeof input === 'object' ? sanitizeInputForLogging(input) : String(input).substring(0, 100)
       });
@@ -55,12 +58,12 @@ export const echoMessage = async (
       throw new McpError(
         BaseErrorCode.VALIDATION_ERROR,
         `Invalid echo tool input: ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`,
-        { requestId }
+        { requestId } // Context for McpError
       );
     }
     
-    toolLogger.debug("Echo tool input validated", { 
-      requestId,
+    logger.debug("Echo tool input validated", { 
+      ...logContext,
       message: validatedInput.message.substring(0, 50) + (validatedInput.message.length > 50 ? '...' : ''),
       mode: validatedInput.mode,
       repeat: validatedInput.repeat,
@@ -81,7 +84,7 @@ export const echoMessage = async (
       }
 
       // Repeat the message the specified number of times - limit for safety
-      const safeRepeatCount = Math.min(validatedInput.repeat, 10);
+      const safeRepeatCount = Math.min(validatedInput.repeat, 10); // Limit repeat count
       const repeatedMessage = Array(safeRepeatCount)
         .fill(formattedMessage)
         .join(' ');
@@ -100,8 +103,8 @@ export const echoMessage = async (
         response.timestamp = new Date().toISOString();
       }
 
-      toolLogger.info("Echo tool response prepared", { 
-        requestId,
+      logger.info("Echo tool response prepared", { 
+        ...logContext,
         responseSize: JSON.stringify(response).length,
         mode: response.mode,
         repeatCount: response.repeatCount
@@ -115,8 +118,8 @@ export const echoMessage = async (
         }]
       };
     } catch (processingError) {
-      toolLogger.error("Error processing echo tool request", {
-        requestId,
+      logger.error("Error processing echo tool request", {
+        ...logContext,
         error: processingError instanceof Error ? processingError.message : 'Unknown error',
         stack: processingError instanceof Error ? processingError.stack : undefined
       });
@@ -126,18 +129,18 @@ export const echoMessage = async (
         throw new McpError(
           BaseErrorCode.VALIDATION_ERROR,
           `Error processing input: ${processingError.message}`,
-          { requestId }
+          { requestId } // Context for McpError
         );
       }
       
       throw new McpError(
         BaseErrorCode.INTERNAL_ERROR,
         `Error processing echo request: ${processingError instanceof Error ? processingError.message : 'Unknown error'}`,
-        { requestId }
+        { requestId } // Context for McpError
       );
     }
   }, {
-    context: errorContext,
+    context: errorContext, // Context for ErrorHandler
     operation: 'processing echo tool request',
     input: sanitizedInput,
     rethrow: true

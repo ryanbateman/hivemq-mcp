@@ -1,13 +1,13 @@
-import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
-import { ErrorHandler } from '../../../utils/errorHandler.js';
-import { logger } from '../../../utils/logger.js';
-import { createRequestContext, sanitizeInput } from '../../../utils/security.js';
-import { EchoResourceQuery, EchoResourceQuerySchema, EchoResourceResponse } from './types.js';
+import { BaseErrorCode, McpError } from '../../../types-global/errors.js'; // Add .js
+import { ErrorHandler } from '../../../utils/errorHandler.js'; // Add .js
+import { logger } from '../../../utils/logger.js'; // Add .js
+import { createRequestContext, sanitizeInput } from '../../../utils/security.js'; // Add .js
+import { EchoResourceQuery, EchoResourceQuerySchema, EchoResourceResponse } from './types.js'; // Add .js
 
-// Create resource-specific logger
-const resourceLogger = logger.createChildLogger({
-  service: 'EchoResource'
-});
+// Define context for this resource module
+const resourceModuleContext = {
+  module: 'EchoResource'
+};
 
 export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> => {
   // Create a request context with unique ID
@@ -17,6 +17,9 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
   });
   const requestId = requestContext.requestId;
 
+  // Combine module and request context for logging
+  const logContext = { ...resourceModuleContext, requestId, uri: uri.href };
+
   // Parse and validate query parameters
   const queryParams: Record<string, string> = {};
   uri.searchParams.forEach((value, key) => {
@@ -24,10 +27,9 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
     queryParams[key] = sanitizeInput.string(value);
   });
 
-  resourceLogger.info("Echo resource request received", { 
-    requestId,
-    queryParams,
-    uri: uri.href
+  logger.info("Echo resource request received", { 
+    ...logContext,
+    queryParams
   });
 
   return ErrorHandler.tryCatch(async () => {
@@ -40,7 +42,7 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
         'Invalid echo resource query parameters',
         { 
           error: validationError instanceof Error ? validationError.message : 'Unknown validation error',
-          requestId,
+          requestId, // Keep requestId in error context
           params: queryParams
         }
       );
@@ -55,8 +57,8 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
       requestId
     };
 
-    resourceLogger.info("Echo resource response data prepared", { 
-      requestId,
+    logger.info("Echo resource response data prepared", { 
+      ...logContext,
       responseData
     });
     
@@ -71,7 +73,7 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
     
     return response;
   }, {
-    context: { 
+    context: { // Context for ErrorHandler
       requestId, 
       uri: uri.toString() 
     },
@@ -85,7 +87,7 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
           factory: () => 
             new McpError(BaseErrorCode.VALIDATION_ERROR, 
               `Invalid echo resource parameters: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              { requestId, uri: uri.toString() })
+              { requestId, uri: uri.toString() }) // Include context in mapped error
         }
       ];
       
@@ -95,7 +97,7 @@ export const getEchoMessage = async (uri: URL): Promise<EchoResourceResponse> =>
         () => new McpError(
           BaseErrorCode.INTERNAL_ERROR, 
           `Error processing echo resource request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          { requestId, uri: uri.toString() }
+          { requestId, uri: uri.toString() } // Include context in mapped error
         )
       );
     },

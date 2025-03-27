@@ -4,7 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { EventEmitter } from "events";
 import { promises as fs } from "fs";
 import path from "path";
-import { envConfig } from "../config/envConfig.js";
+import { config, environment } from "../config/index.js"; 
 import { BaseErrorCode, McpError } from "../types-global/errors.js";
 import { ErrorHandler } from "../utils/errorHandler.js";
 import { idGenerator } from "../utils/idGenerator.js";
@@ -27,11 +27,14 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
  * @returns A promise resolving to an object with the package name and version
  */
 const loadPackageInfo = async (): Promise<{ name: string; version: string }> => {
+  const operationContext = { operation: 'LoadPackageInfo' };
   return await ErrorHandler.tryCatch(
     async () => {
       const pkgPath = path.resolve(process.cwd(), 'package.json');
       const safePath = sanitizeInput.path(pkgPath);
       
+      logger.debug("Attempting to load package.json", { ...operationContext, path: safePath });
+
       // Get file stats to check size before reading
       const stats = await fs.stat(safePath);
       
@@ -56,15 +59,17 @@ const loadPackageInfo = async (): Promise<{ name: string; version: string }> => 
         );
       }
       
+      logger.info("Successfully loaded package info", { ...operationContext, name: pkg.name, version: pkg.version });
       return {
         name: pkg.name,
         version: pkg.version
       };
     },
     {
-      operation: 'LoadPackageInfo',
-      errorCode: BaseErrorCode.VALIDATION_ERROR,
-      rethrow: false,
+      operation: 'LoadPackageInfo', // Keep operation name consistent
+      context: operationContext, // Pass context
+      errorCode: BaseErrorCode.VALIDATION_ERROR, // Default error code if not mapped
+      rethrow: false, // Allow fallback
       includeStack: true,
       errorMapper: (error) => {
         if (error instanceof SyntaxError) {
@@ -74,6 +79,7 @@ const loadPackageInfo = async (): Promise<{ name: string; version: string }> => 
             { errorType: 'SyntaxError' }
           );
         }
+        // Let ErrorHandler handle logging for other errors
         return new McpError(
           BaseErrorCode.INTERNAL_ERROR,
           `Failed to load package info: ${error instanceof Error ? error.message : String(error)}`,
@@ -81,11 +87,14 @@ const loadPackageInfo = async (): Promise<{ name: string; version: string }> => 
         );
       }
     }
-  ).catch(() => {
-    // If we can't load package.json, use defaults
+  ).catch((error) => { // Catch is only needed if rethrow is false and we want a fallback
+    // Safely access error message
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.warn("Failed to load package.json, using defaults.", { ...operationContext, error: errorMessage });
+    // If we can't load package.json, use defaults from config if available
     return {
-      name: "mcp-template-server",
-      version: "1.0.0"
+      name: config.mcpServerName || "mcp-template-server", 
+      version: config.mcpServerVersion || "1.0.0"
     };
   });
 };
@@ -129,10 +138,6 @@ class ServerEvents extends EventEmitter {
 /**
  * Create and initialize an MCP server instance with all tools and resources
  * 
- * This function configures the MCP server with security settings, tools, and resources.
- * It connects the server to a transport (currently stdio) and returns the initialized
- * server instance.
- * 
  * @returns A promise that resolves to the initialized McpServer instance
  * @throws {McpError} If the server fails to initialize
  */
@@ -156,37 +161,30 @@ export const createMcpServer = async () => {
     registeredTools: new Set(),
     registeredResources: new Set(),
     failedRegistrations: [],
-    requiredTools: new Set(['echo_message']), // Define tools that are required for the server to function properly
-    requiredResources: new Set(['echo-resource']) // Define resources that are required for the server to function properly
+    requiredTools: new Set(['echo_message']), // Define tools required for 'running' state
+    requiredResources: new Set(['echo-resource']) // Define resources required for 'running' state
   };
 
-  // Create operation context
-  const serverContext = createRequestContext({
-    operation: 'ServerStartup',
-    component: 'McpServer',
-    serverId
-  });
-
-  // Create server-specific logger with context
-  const serverLogger = logger.createChildLogger({
+  // Create base context for server operations
+  const serverBaseContext = {
     service: 'MCPServer',
-    requestId: serverContext.requestId,
     serverId,
-    environment: envConfig().environment
-  });
+    environment: environment // Use imported environment
+  };
 
   // Create server events emitter
   const serverEvents = new ServerEvents();
   
   // Monitor state changes
   serverEvents.on('stateChange', (oldState, newState) => {
-    serverLogger.info(`Server state changed from ${oldState} to ${newState}`, { 
+    logger.info(`Server state changed from ${oldState} to ${newState}`, { 
+      ...serverBaseContext,
       previousState: oldState, 
       newState 
     });
   });
   
-  serverLogger.info("Initializing server...");
+  logger.info("Initializing server...", serverBaseContext);
   
   const timers: Array<NodeJS.Timeout> = [];
   
@@ -195,19 +193,18 @@ export const createMcpServer = async () => {
       // Load package info asynchronously
       const packageInfo = await loadPackageInfo();
       
-      // Update logger with package info
-      serverLogger.info("Loaded package info", {
+      // Update base context with package info
+      const serverContext = { ...serverBaseContext, appName: packageInfo.name, appVersion: packageInfo.version };
+      
+      logger.info("Loaded package info", {
+        ...serverContext, // Log with full context now
         name: packageInfo.name,
         version: packageInfo.version
       });
     
-      // Rate limiting configuration
-      const rateLimitSettings = {
-        windowMs: envConfig().rateLimit.windowMs || 60000,
-        maxRequests: envConfig().rateLimit.maxRequests || 100
-      };
+      // Removed rate limiting logic - add back if needed and defined in config
       
-      // Configure context settings
+      // Configure context settings (placeholder)
       const contextConfig = configureContext({
         // Any future non-auth context settings can go here
       });
@@ -218,12 +215,14 @@ export const createMcpServer = async () => {
         version: packageInfo.version
       });
       
-      // Set up error handling
+      // Set up error handling for the process
       process.on('uncaughtException', (error) => {
+        const oldStatus = serverState.status;
         serverState.status = 'error';
+        serverEvents.emitStateChange(oldStatus, 'error');
         serverState.errors.push({
           timestamp: new Date(),
-          message: error.message,
+          message: error.message, // error is guaranteed to be Error here
           code: error instanceof McpError ? error.code : 'UNCAUGHT_EXCEPTION'
         });
         
@@ -232,10 +231,13 @@ export const createMcpServer = async () => {
           context: serverContext,
           critical: true
         });
+        // Consider initiating shutdown here if appropriate
       });
       
       process.on('unhandledRejection', (reason) => {
+        const oldStatus = serverState.status;
         serverState.status = 'error';
+        serverEvents.emitStateChange(oldStatus, 'error');
         serverState.errors.push({
           timestamp: new Date(),
           message: reason instanceof Error ? reason.message : String(reason),
@@ -247,6 +249,7 @@ export const createMcpServer = async () => {
           context: serverContext,
           critical: true
         });
+         // Consider initiating shutdown here if appropriate
       });
       
       /**
@@ -260,7 +263,7 @@ export const createMcpServer = async () => {
         
         const oldStatus = serverState.status;
         // Only update if not in terminal states
-        if (!['shutdown', 'shutting_down'].includes(oldStatus)) {
+        if (!['shutdown', 'shutting_down', 'error'].includes(oldStatus)) {
           const newStatus = requiredToolsMet && requiredResourcesMet ? 'running' : 'degraded';
           if (oldStatus !== newStatus) {
             serverState.status = newStatus;
@@ -273,6 +276,7 @@ export const createMcpServer = async () => {
        * Health check function
        */
       function runHealthCheck() {
+        const healthCheckContext = { ...serverContext, operation: 'HealthCheck' };
         return ErrorHandler.tryCatch(
           async () => {
             serverState.lastHealthCheck = new Date();
@@ -282,24 +286,27 @@ export const createMcpServer = async () => {
             for (const [opId, opInfo] of serverState.activeOperations.entries()) {
               const opRuntime = now - opInfo.startTime.getTime();
               if (opRuntime > 300000) { // 5 minutes
-                serverLogger.warn(`Operation ${opInfo.operation} (${opId}) has been running for over 5 minutes`, {
-                  operation: opInfo.operation,
+                logger.warn(`Operation ${opInfo.operation} (${opId}) has been running for over 5 minutes`, {
+                  ...healthCheckContext,
+                  operationId: opId,
+                  stalledOperation: opInfo.operation,
                   startTime: opInfo.startTime,
-                  runtime: opRuntime
+                  runtimeMs: opRuntime
                 });
               }
             }
             
-            serverLogger.debug("Server health check", { 
+            logger.debug("Server health check", { 
+              ...healthCheckContext,
               status: serverState.status,
-              uptime: (now - serverState.startTime.getTime()) / 1000,
-              activeOperations: serverState.activeOperations.size,
-              errors: serverState.errors.length
+              uptimeSeconds: (now - serverState.startTime.getTime()) / 1000,
+              activeOperationsCount: serverState.activeOperations.size,
+              errorCount: serverState.errors.length
             });
           },
           {
-            operation: 'HealthCheck',
-            context: serverContext
+            operation: 'HealthCheck', // Keep operation name consistent
+            context: healthCheckContext // Pass context
           }
         );
       }
@@ -307,64 +314,69 @@ export const createMcpServer = async () => {
       // Create interval that won't prevent process exit
       const healthCheckInterval = setInterval(() => runHealthCheck(), 60000); // Every minute
       healthCheckInterval.unref(); // Ensures this won't prevent process exit
-      
-      // Track the interval for cleanup
-      timers.push(healthCheckInterval);
+      timers.push(healthCheckInterval); // Track for cleanup
       
       /**
        * Cleanup function to handle graceful shutdown
        */
       const cleanup = async () => {
+        const cleanupContext = { ...serverContext, operation: 'Cleanup' };
         return await ErrorHandler.tryCatch(
           async () => {
-            // Set state to shutting_down if not already
-            if (serverState.status !== 'shutting_down' && serverState.status !== 'shutdown') {
+            // Set state to shutting_down if not already terminal
+            if (!['shutting_down', 'shutdown'].includes(serverState.status)) {
               const oldStatus = serverState.status;
               serverState.status = 'shutting_down';
               serverEvents.emitStateChange(oldStatus, 'shutting_down');
             }
             
+            logger.info("Starting server cleanup...", cleanupContext);
+
             // Clean up all timers
             for (const timer of timers) {
               clearInterval(timer);
               clearTimeout(timer);
             }
+            timers.length = 0; // Clear the array
             
-            // Wait for active operations to complete (with timeout)
+            // Wait for active operations to complete (with timeout) - Placeholder
             if (serverState.activeOperations.size > 0) {
-              serverLogger.info(`Waiting for ${serverState.activeOperations.size} active operations to complete...`);
-              
-              // In a real implementation, you might want to wait for operations to complete
-              // or implement a timeout mechanism
+              logger.info(`Waiting for ${serverState.activeOperations.size} active operations to complete...`, cleanupContext);
+              // In a real implementation, add wait logic or timeout
             }
             
             // Close the server
             if (server) {
               await server.close();
-              serverLogger.info("Server closed successfully");
+              logger.info("Server closed successfully", cleanupContext);
             }
             
             // Set final state
+            const finalOldStatus = serverState.status;
             serverState.status = 'shutdown';
+            if (finalOldStatus !== 'shutdown') {
+              serverEvents.emitStateChange(finalOldStatus, 'shutdown');
+            }
             
+            logger.info("Server cleanup finished.", cleanupContext);
             return true;
           },
           {
-            operation: 'Cleanup',
-            context: serverContext
+            operation: 'Cleanup', // Keep operation name consistent
+            context: cleanupContext // Pass context
           }
         );
       };
       
-      // Track operation for cleanup on shutdown
+      // Track operation for cleanup on shutdown signals
       process.on('SIGINT', async () => {
-        serverLogger.info("Shutting down server due to SIGINT signal...");
+        logger.info("Received SIGINT signal, initiating shutdown...", serverContext);
         await cleanup();
         process.exit(0);
       });
       
       process.on('SIGTERM', async () => {
-        serverLogger.info("Shutting down server due to SIGTERM signal...");
+        logger.info("Received SIGTERM signal, initiating shutdown...", serverContext);
         await cleanup();
         process.exit(0);
       });
@@ -377,17 +389,19 @@ export const createMcpServer = async () => {
         error?: any;
       };
       
+      // Wrapper for registration with state update
       const registerComponent = async (
         type: 'tool' | 'resource',
         name: string,
         registerFn: () => Promise<void>
       ): Promise<RegistrationResult> => {
+        const registrationOpContext = { ...serverContext, operation: `Register${type}`, componentName: name };
         try {
           await ErrorHandler.tryCatch(
             async () => await registerFn(),
             {
-              operation: `Register${type === 'tool' ? 'Tool' : 'Resource'}`,
-              context: { ...serverContext, componentName: name },
+              operation: registrationOpContext.operation, // Use specific operation name
+              context: registrationOpContext, // Pass context
               errorCode: BaseErrorCode.INTERNAL_ERROR
             }
           );
@@ -398,152 +412,142 @@ export const createMcpServer = async () => {
           } else {
             serverState.registeredResources.add(name);
           }
-          
+          logger.info(`Successfully registered ${type}: ${name}`, registrationOpContext);
           return { success: true, type, name };
         } catch (error) {
+           // Safely access error message
+           const errorMessage = error instanceof Error ? error.message : String(error);
+           logger.error(`Failed initial registration for ${type}: ${name}`, { ...registrationOpContext, error: errorMessage });
           return { success: false, type, name, error };
         }
       };
       
-      // Register components with proper error handling
-      const registrationPromises: Promise<RegistrationResult>[] = [
+      // Define registration tasks
+      const registrationTasks: Promise<RegistrationResult>[] = [
         registerComponent('tool', 'echo_message', () => registerEchoTool(server!)),
         registerComponent('resource', 'echo-resource', () => registerEchoResource(server!))
       ];
       
-      const registrationResults = await Promise.allSettled(registrationPromises);
+      // Execute registrations
+      const registrationResults = await Promise.allSettled(registrationTasks);
       
-      // Process the results to find failed registrations
-      const failedRegistrations: Array<RegistrationResult & { attempts?: number }> = [];
-      
+      // Process results and identify initial failures
       registrationResults.forEach(result => {
-        if (result.status === 'rejected') {
-          failedRegistrations.push({ 
-            success: false, 
-            type: 'unknown' as 'tool' | 'resource', 
-            name: 'unknown', 
-            error: result.reason 
+        if (result.status === 'fulfilled' && !result.value.success) {
+          // Add successful promise but failed registration to state
+           serverState.failedRegistrations.push({
+            type: result.value.type,
+            name: result.value.name,
+            error: result.value.error || new Error('Unknown error during registration'),
+            attempts: 1
           });
-        } else if (!result.value.success) {
-          failedRegistrations.push(result.value);
+        } else if (result.status === 'rejected') {
+           // This case might happen if ErrorHandler itself fails catastrophically
+           logger.error("Catastrophic registration failure", { ...serverContext, reason: result.reason });
+           serverState.failedRegistrations.push({
+             type: 'unknown' as 'tool', // Placeholder type/name
+             name: 'unknown',
+             error: result.reason,
+             attempts: 1
+           });
         }
       });
       
-      // Process failed registrations
-      if (failedRegistrations.length > 0) {
-        serverLogger.warn(`${failedRegistrations.length} registrations failed initially`, {
-          failedComponents: failedRegistrations.map(f => `${f.type}:${f.name}`) 
+      // Initial status update after first registration attempt
+      updateServerStatus(); 
+      
+      // Set up retry mechanism only if there were initial failures
+      if (serverState.failedRegistrations.length > 0) {
+        logger.warn(`${serverState.failedRegistrations.length} registrations failed initially, setting up retry...`, {
+          ...serverContext,
+          failedComponents: serverState.failedRegistrations.map(f => `${f.type}:${f.name}`) 
         });
         
-        // Track failed registrations for potential retry
-        for (const failure of failedRegistrations) {
-          serverState.failedRegistrations.push({
-            type: failure.type,
-            name: failure.name,
-            error: failure.error || new Error('Unknown error during registration'),
-            attempts: 1
-          });
-        }
-        
-        // Update server status based on failures
-        updateServerStatus();
-        
-        // Set up retry mechanism for failed registrations
-        if (serverState.failedRegistrations.length > 0) {
-          const retryInterval = setInterval(async () => {
-            await ErrorHandler.tryCatch(
-              async () => {
-                if (serverState.failedRegistrations.length === 0) {
-                  clearInterval(retryInterval);
-                  return;
-                }
-                
-                const retryable = serverState.failedRegistrations.filter(f => f.attempts < MAX_REGISTRATION_RETRIES);
-                if (retryable.length === 0) {
-                  serverLogger.warn("Maximum retry attempts reached for all failed registrations");
-                  clearInterval(retryInterval);
-                  return;
-                }
-                
-                serverLogger.info(`Attempting to retry ${retryable.length} failed registrations...`);
-                
-                // Retry each component
-                for (let i = 0; i < retryable.length; i++) {
-                  const failedReg = { ...retryable[i] }; // Get a copy to avoid mutation issues
-                  
-                  try {
-                    if (failedReg.type === 'tool') {
-                      // Retry tool registration
-                      await registerEchoTool(server!);
-                      serverState.registeredTools.add(failedReg.name);
-                      
-                      // Remove from failed list
-                      serverState.failedRegistrations = serverState.failedRegistrations.filter(
-                        f => !(f.type === 'tool' && f.name === failedReg.name)
-                      );
-                      
-                      serverLogger.info(`Successfully retried registration for tool: ${failedReg.name}`);
-                    } else if (failedReg.type === 'resource') {
-                      // Retry resource registration
-                      await registerEchoResource(server!);
-                      serverState.registeredResources.add(failedReg.name);
-                      
-                      // Remove from failed list
-                      serverState.failedRegistrations = serverState.failedRegistrations.filter(
-                        f => !(f.type === 'resource' && f.name === failedReg.name)
-                      );
-                      
-                      serverLogger.info(`Successfully retried registration for resource: ${failedReg.name}`);
-                    }
-                  } catch (error) {
-                    // Increment retry count
-                    const failedItem = serverState.failedRegistrations.find(
-                      f => f.type === failedReg.type && f.name === failedReg.name
-                    );
-                    
-                    if (failedItem) {
-                      failedItem.attempts++;
-                      failedItem.error = error;
-                    }
-                    
-                    serverLogger.error(`Retry failed for ${failedReg.type} ${failedReg.name}`, { 
-                      error: error instanceof Error ? error.message : String(error),
-                      attemptNumber: failedItem?.attempts
-                    });
-                  }
-                }
-                
-                // After retry attempts, update server status
-                updateServerStatus();
-              },
-              {
-                operation: 'RetryRegistrations',
-                context: serverContext
+        const retryInterval = setInterval(async () => {
+          const retryContext = { ...serverContext, operation: 'RetryRegistrations' };
+          await ErrorHandler.tryCatch(
+            async () => {
+              const retryable = serverState.failedRegistrations.filter(f => f.attempts < MAX_REGISTRATION_RETRIES);
+              
+              if (retryable.length === 0) {
+                logger.info("No more registrations to retry or max attempts reached.", retryContext);
+                clearInterval(retryInterval);
+                // Final status update after retries stop
+                updateServerStatus(); 
+                return;
               }
-            );
-          }, 30000); // Retry every 30 seconds
-          
-          // Ensure interval doesn't prevent process exit
-          retryInterval.unref();
-          // Track the interval for cleanup
-          timers.push(retryInterval);
-        }
+              
+              logger.info(`Attempting to retry ${retryable.length} failed registrations...`, retryContext);
+              
+              // Retry each component
+              const retryPromises = retryable.map(async (failedReg) => {
+                 const retryAttemptContext = { ...retryContext, componentType: failedReg.type, componentName: failedReg.name, attempt: failedReg.attempts + 1 };
+                 try {
+                   let registerFn: () => Promise<void>;
+                   if (failedReg.type === 'tool' && failedReg.name === 'echo_message') {
+                     registerFn = () => registerEchoTool(server!);
+                   } else if (failedReg.type === 'resource' && failedReg.name === 'echo-resource') {
+                     registerFn = () => registerEchoResource(server!);
+                   } else {
+                     throw new Error(`Unknown component type/name for retry: ${failedReg.type}/${failedReg.name}`);
+                   }
+
+                   await registerComponent(failedReg.type, failedReg.name, registerFn);
+                   
+                   // If successful, remove from failed list
+                   serverState.failedRegistrations = serverState.failedRegistrations.filter(
+                     f => !(f.type === failedReg.type && f.name === failedReg.name)
+                   );
+                   logger.info(`Successfully retried registration`, retryAttemptContext);
+
+                 } catch (error) {
+                   // Increment retry count on failure
+                   const failedItem = serverState.failedRegistrations.find(
+                     f => f.type === failedReg.type && f.name === failedReg.name
+                   );
+                   if (failedItem) {
+                     failedItem.attempts++;
+                     failedItem.error = error; // Update error
+                     // Safely access error message
+                     const errorMessage = error instanceof Error ? error.message : String(error);
+                     logger.error(`Retry attempt failed`, { ...retryAttemptContext, error: errorMessage });
+                   }
+                 }
+              });
+
+              await Promise.allSettled(retryPromises);
+              
+              // After retry attempts for this interval, update server status
+              updateServerStatus();
+            },
+            {
+              operation: 'RetryRegistrations', // Keep operation name consistent
+              context: retryContext // Pass context
+            }
+          );
+        }, 30000); // Retry every 30 seconds
+        
+        retryInterval.unref(); // Ensure interval doesn't prevent process exit
+        timers.push(retryInterval); // Track for cleanup
       }
 
       // Connect using stdio transport
       await server.connect(new StdioServerTransport());
       
-      // Update server state
-      const oldStatus = serverState.status;
-      serverState.status = 'running';
-      serverEvents.emitStateChange(oldStatus, 'running');
+      // Update server state if not already running (might be degraded)
+      if (serverState.status === 'initializing') {
+         updateServerStatus(); // Set initial running/degraded state
+      }
       
-      serverLogger.info("Server started and connected successfully", {
+      logger.info("Server started and connected successfully", {
+        ...serverContext,
+        status: serverState.status, // Log final status after initial registration
         tools: Array.from(serverState.registeredTools),
-        resources: Array.from(serverState.registeredResources)
+        resources: Array.from(serverState.registeredResources),
+        failedCount: serverState.failedRegistrations.length
       });
 
-      // Add event listener for graceful shutdown
+      // Add event listener for graceful shutdown state
       serverEvents.on('state:shutting_down', () => cleanup());
 
       // Run initial health check
@@ -552,8 +556,8 @@ export const createMcpServer = async () => {
       return server;
     },
     {
-      operation: 'CreateMcpServer',
-      context: serverContext,
+      operation: 'CreateMcpServer', // Keep operation name consistent
+      context: serverBaseContext, // Use base context before package info is loaded
       critical: true,
       errorMapper: (error) => new McpError(
         BaseErrorCode.INTERNAL_ERROR,
@@ -561,31 +565,35 @@ export const createMcpServer = async () => {
         { 
           serverState: serverState.status,
           startTime: serverState.startTime,
-          registeredTools: Array.from(serverState.registeredTools),
-          registeredResources: Array.from(serverState.registeredResources)
+          // Add minimal context available during early failure
         }
       )
     }
-  ).catch((error) => {
-    // Clean up timers
+  ).catch((error) => { // Catch errors from the main tryCatch block
+    // Clean up timers if any were started
     for (const timer of timers) {
       clearInterval(timer);
       clearTimeout(timer);
     }
     
-    // Attempt to close server
+    // Attempt to close server if it was created
     if (server) {
       try {
         server.close();
       } catch (closeError) {
-        // Already in error state, just log
-        serverLogger.debug("Error while closing server during error recovery", {
+        logger.debug("Error closing server during error recovery", {
+          ...serverBaseContext, // Use base context
           error: closeError instanceof Error ? closeError.message : String(closeError)
         });
       }
     }
     
-    // Re-throw to communicate error to caller
+    // Ensure error is logged if not already by ErrorHandler
+    // Safely access error message
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("Server initialization failed critically.", { ...serverBaseContext, error: errorMessage });
+
+    // Re-throw to communicate error to caller (e.g., src/index.ts)
     throw error;
   });
 };

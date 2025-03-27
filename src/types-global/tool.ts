@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { RateLimitConfig } from "../utils/rateLimiter.js";
-import { OperationContext } from "../utils/security.js";
-import { ErrorHandler } from "../utils/errorHandler.js";
-import { logger } from "../utils/logger.js";
+import { RateLimitConfig } from "../utils/rateLimiter.js"; // Add .js
+import { OperationContext } from "../utils/security.js"; // Add .js
+import { ErrorHandler } from "../utils/errorHandler.js"; // Add .js
+import { logger } from "../utils/logger.js"; // Add .js
 
-// Create a module-level logger
-const toolLogger = logger.createChildLogger({
+// Define context for this module
+const toolModuleContext = {
   module: 'ToolRegistration'
-});
+};
 
 /**
  * Metadata for a tool example
@@ -82,18 +82,20 @@ export function createToolMetadata(metadata: ToolMetadata): ToolMetadata {
  * @param metadata Optional tool metadata
  */
 export function registerTool(
-  server: any,  // Using any to avoid type conflicts
+  server: any,  // Using any to avoid type conflicts with McpServer potentially
   name: string, 
   description: string, 
   inputSchema: Record<string, z.ZodType<any>>, 
   handler: (input: unknown, context: OperationContext) => Promise<unknown>,
   metadata?: ToolMetadata  
 ): Promise<void> {
+  const registrationContext = { ...toolModuleContext, toolName: name };
+  
   return ErrorHandler.tryCatch<void>(
     async () => {
       // Log the registration attempt
-      toolLogger.info(`Registering tool: ${name}`, {
-        toolName: name,
+      logger.info(`Registering tool: ${name}`, {
+        ...registrationContext,
         schemaKeys: Object.keys(inputSchema),
         hasMetadata: Boolean(metadata),
         hasExamples: Boolean(metadata?.examples?.length)
@@ -112,15 +114,16 @@ export function registerTool(
         throw new Error('Handler must be a function');
       }
 
-      // Convert schema to a more standardized format if needed
+      // Convert schema to a more standardized format if needed for logging
       const schemaDescription = Object.entries(inputSchema).map(([key, schema]) => {
         const description = schema.description;
-        const isRequired = !schema.isOptional?.();
+        // Check if the schema is optional using Zod's introspection
+        const isRequired = !(schema instanceof z.ZodOptional || schema instanceof z.ZodDefault); 
         return `${key}${isRequired ? ' (required)' : ''}: ${description || 'No description'}`;
       }).join('\n');
 
-      toolLogger.debug(`Tool ${name} schema:`, {
-        toolName: name,
+      logger.debug(`Tool ${name} schema:`, {
+        ...registrationContext,
         schema: schemaDescription
       });
 
@@ -128,23 +131,21 @@ export function registerTool(
       // Check if it's an McpServer instance with tool() method
       if (server.tool && typeof server.tool === 'function') {
         // Use the McpServer.tool() method directly
-        toolLogger.debug('Using McpServer.tool() method');
+        logger.debug('Using McpServer.tool() method', registrationContext);
         server.tool(name, inputSchema, handler, {
           description,
           examples: metadata?.examples
         });
       } else {
         // For other server types or for testing, log a warning
-        toolLogger.warn(`Unable to register tool ${name} with server - missing tool() method`, {
-          toolName: name
-        });
+        logger.warn(`Unable to register tool ${name} with server - missing tool() method`, registrationContext);
       }
 
       // Log successful registration
-      toolLogger.info(`Tool ${name} registered successfully`);
+      logger.info(`Tool ${name} registered successfully`, registrationContext);
     },
     {
-      context: { toolName: name },
+      context: registrationContext, // Pass context to ErrorHandler
       operation: "registering tool",
       errorMapper: (error) => new Error(`Failed to register tool ${name}: ${error instanceof Error ? error.message : String(error)}`),
       rethrow: true
