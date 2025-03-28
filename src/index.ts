@@ -4,7 +4,7 @@ import { createMcpServer } from "./mcp-server/server.js";
 import { BaseErrorCode, McpError } from "./types-global/errors.js";
 import { ErrorHandler } from "./utils/errorHandler.js";
 import { logger } from "./utils/logger.js";
-import { createRequestContext } from "./utils/security.js";
+import { createRequestContext } from "./utils/requestContext.js"; // Updated import
 
 // Track the main server instance
 let server: Awaited<ReturnType<typeof createMcpServer>> | undefined;
@@ -58,25 +58,19 @@ const start = async () => {
     environment: environment // Use imported environment
   });
   
-  // Define context for startup logging
-  const startupLogContext = {
-    operation: 'Startup',
-    requestId: startupContext.requestId,
-    appName: config.mcpServerName,
-    appVersion: config.mcpServerVersion,
-    environment: environment
-  };
-
-  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion}...`, startupLogContext);
+  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion}...`, { 
+    ...startupContext, 
+    operation: 'Startup' // Add operation directly
+  });
 
   try {
     // Create and store the main server instance
-    logger.debug("Creating main MCP server instance", startupLogContext);
+    logger.debug("Creating main MCP server instance", { ...startupContext, operation: 'Startup' });
     server = await ErrorHandler.tryCatch(
       async () => await createMcpServer(),
       { 
         operation: 'creating main MCP server', 
-        context: startupLogContext,
+        context: { ...startupContext, operation: 'Startup' }, // Use startupContext
         errorCode: BaseErrorCode.INTERNAL_ERROR // Specify error code for failure
       }
     );
@@ -88,7 +82,8 @@ const start = async () => {
     }
 
     logger.info(`${config.mcpServerName} is running and awaiting messages`, {
-      ...startupLogContext,
+      ...startupContext, // Use startupContext
+      operation: 'Startup', // Add operation
       startTime: new Date().toISOString(),
     });
 
@@ -99,6 +94,7 @@ const start = async () => {
     // Handle uncaught errors
     process.on("uncaughtException", async (error) => { // Add async
       const errorContext = {
+        ...startupContext, // Include base context
         event: 'uncaughtException',
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
@@ -118,6 +114,7 @@ const start = async () => {
 
     process.on("unhandledRejection", async (reason: unknown) => { // Add async
       const rejectionContext = {
+        ...startupContext, // Include base context
         event: 'unhandledRejection',
         reason: reason instanceof Error ? reason.message : String(reason),
         stack: reason instanceof Error ? reason.stack : undefined
@@ -137,9 +134,10 @@ const start = async () => {
   } catch (error) {
     // Handle critical startup errors (already logged by ErrorHandler or caught above)
     logger.error("Critical error during startup, exiting.", { 
-      ...startupLogContext,
+      ...startupContext, // Use startupContext
       // Error should have been logged already, just adding context
-      finalErrorContext: 'Startup Failure'
+      finalErrorContext: 'Startup Failure',
+      operation: 'Startup' // Add operation
     });
     process.exit(1);
   }

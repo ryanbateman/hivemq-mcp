@@ -1,4 +1,4 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js"; // Add .js
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js"; // Corrected imports
 import { z } from 'zod';
 import { BaseErrorCode, McpError } from '../../../types-global/errors.js'; // Add .js
 import { ErrorHandler } from '../../../utils/errorHandler.js'; // Add .js
@@ -28,13 +28,22 @@ const processEchoResource = (uri: URL, params: { message?: string }) => {
   };
 };
 
+// Define the Zod schema for query parameters separately
+const querySchema = z.object({
+  message: z.string().optional()
+    .describe('Message to echo back in the response')
+});
+
+// Infer the type from the Zod schema
+type EchoParams = z.infer<typeof querySchema>;
+
 /**
  * Register the echo resource directly with the MCP server instance.
  * 
- * @param server - The MCP server instance to register the resource with
+ * @param server - The MCP server instance to register the resource with (Type corrected to McpServer)
  * @returns Promise resolving when registration is complete
  */
-export const registerEchoResource = async (server: McpServer): Promise<void> => {
+export const registerEchoResource = async (server: McpServer): Promise<void> => { // Type corrected here
   const resourceName = "echo-resource";
   const registrationContext = { ...resourceModuleContext, resourceName };
 
@@ -71,10 +80,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           mimeType: "application/json",
           
           // Query schema
-          querySchema: z.object({
-            message: z.string().optional()
-              .describe('Message to echo back in the response')
-          }),
+          querySchema: querySchema, // Use defined schema
           
           // Examples
           examples: [
@@ -87,14 +93,15 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
         },
         
         // Resource handler - uses global logger if needed
-        async (uri, params) => {
+        async (uri: URL, params: EchoParams) => { // Added types for uri and params
           const handlerContext = { ...registrationContext, operation: 'handleRequest', uri: uri.href, params };
           logger.debug("Handling echo resource request", handlerContext);
           
           // Use ErrorHandler.tryCatch for the handler logic
           return await ErrorHandler.tryCatch(
             async () => {
-              const responseData = processEchoResource(uri, params);
+              // processEchoResource expects { message?: string }, params matches EchoParams
+              const responseData = processEchoResource(uri, params); 
               
               // Return in the standardized format expected by the MCP SDK
               return {
@@ -111,7 +118,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
               input: { uri: uri.href, params },
               // Provide custom error mapping for better error messages
               errorMapper: (error) => new McpError(
-                BaseErrorCode.INTERNAL_ERROR,
+                BaseErrorCode.INTERNAL_ERROR, // Keep using BaseErrorCode here as it's internal mapping
                 `Error processing echo resource: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 { uri: uri.href } // Context for McpError
               )
@@ -125,9 +132,9 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
     {
       operation: `registering resource ${resourceName}`,
       context: registrationContext, // Context for registration error
-      errorCode: BaseErrorCode.INTERNAL_ERROR,
+      errorCode: BaseErrorCode.INTERNAL_ERROR, // Keep using BaseErrorCode here
       errorMapper: (error) => new McpError(
-        error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
+        error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR, // Keep using BaseErrorCode here
         `Failed to register resource '${resourceName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
         { resourceName } // Context for McpError
       ),

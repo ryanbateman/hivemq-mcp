@@ -1,7 +1,8 @@
 import { BaseErrorCode, McpError } from '../../../types-global/errors.js'; // Add .js
 import { ErrorHandler } from '../../../utils/errorHandler.js'; // Add .js
 import { logger } from '../../../utils/logger.js'; // Add .js
-import { createRequestContext, sanitizeInput } from '../../../utils/security.js'; // Add .js
+import { createRequestContext } from '../../../utils/requestContext.js'; // Updated import
+import { sanitizeInput } from '../../../utils/sanitization.js'; // Updated import
 import { EchoResourceQuery, EchoResourceQuerySchema, EchoResourceResponse } from './types.js'; // Add .js
 
 // Define context for this resource module

@@ -1,7 +1,8 @@
 import { BaseErrorCode, McpError } from '../../../types-global/errors.js'; // Add .js
 import { ErrorContext, ErrorHandler } from '../../../utils/errorHandler.js'; // Add .js
 import { logger } from '../../../utils/logger.js'; // Add .js
-import { OperationContext, sanitizeInput, sanitizeInputForLogging } from '../../../utils/security.js'; // Add .js
+import { OperationContext } from '../../../utils/requestContext.js'; // Updated import
+import { sanitizeInput, sanitizeInputForLogging } from '../../../utils/sanitization.js'; // Updated import
 import { EchoToolInput, EchoToolInputSchema, EchoToolResponse } from './types.js'; // Add .js
 
 // Define context for this tool module

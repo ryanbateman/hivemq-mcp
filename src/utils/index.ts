@@ -5,7 +5,7 @@ export * from './idGenerator.js';
 export * from './logger.js'; 
 export * from './rateLimiter.js';
 export * from './sanitization.js';
-export * from './security.js'; 
+// Removed: export * from './security.js'; 
 
 // Import named exports
 import { createRequestContext } from './requestContext.js';
@@ -14,7 +14,7 @@ import { idGenerator } from './idGenerator.js';
 import { logger } from './logger.js'; 
 import { rateLimiter } from './rateLimiter.js';
 import { sanitizeInput } from './sanitization.js'; 
-import * as security from './security.js'; 
+// Removed: import * as security from './security.js'; 
 
 // Export combined default (optional, consider if needed)
 // If default export is not the primary way of consumption, 
@@ -36,6 +36,6 @@ export {
   idGenerator,
   logger,
   rateLimiter,
-  sanitizeInput,
-  security
+  sanitizeInput
+  // Removed: security
 };

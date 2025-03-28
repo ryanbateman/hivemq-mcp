@@ -1,6 +1,6 @@
 import { BaseErrorCode, McpError } from '../types-global/errors.js';
 import { logger } from './logger.js';
-import { sanitizeInputForLogging } from './security.js';
+import { sanitizeInputForLogging } from './sanitization.js'; // Updated import
 
 /**
  * Generic error context interface

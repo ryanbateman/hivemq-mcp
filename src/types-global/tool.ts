@@ -1,154 +1,138 @@
 import { z } from 'zod';
-import { RateLimitConfig } from "../utils/rateLimiter.js"; // Add .js
-import { OperationContext } from "../utils/security.js"; // Add .js
+import { BaseErrorCode, McpError } from './errors.js'; // Add .js
+import { OperationContext } from "../utils/requestContext.js"; // Updated import
 import { ErrorHandler } from "../utils/errorHandler.js"; // Add .js
 import { logger } from "../utils/logger.js"; // Add .js
 
-// Define context for this module
-const toolModuleContext = {
-  module: 'ToolRegistration'
-};
+/**
+ * Base interface for tool input parameters
+ */
+export interface BaseToolInput {
+  [key: string]: unknown;
+}
 
 /**
- * Metadata for a tool example
+ * Base interface for tool response content
  */
-export interface ToolExample {
-  /** Example input parameters */
-  input: Record<string, unknown>;
-  /** Expected output string */
-  output: string;
-  /** Description of the example */
+export interface BaseToolResponse {
+  [key: string]: unknown;
+}
+
+/**
+ * Standard MCP tool response format
+ */
+export interface McpToolResponse {
+  content: {
+    type: "text" | "json" | "markdown";
+    text: string;
+  }[];
+  isError?: boolean;
+}
+
+/**
+ * Interface for a tool handler function
+ */
+export type ToolHandler<TInput extends BaseToolInput, TResponse extends McpToolResponse> = (
+  input: TInput,
+  context: OperationContext
+) => Promise<TResponse>;
+
+/**
+ * Interface for tool registration options
+ */
+export interface ToolRegistrationOptions<TInput extends BaseToolInput> {
+  /** Zod schema for input validation */
+  inputSchema: z.ZodType<TInput>;
+  /** Description of the tool */
   description: string;
+  /** Example usage scenarios */
+  examples?: { name: string; input: TInput; description?: string }[];
 }
 
 /**
- * Configuration for a tool
+ * Abstract base class for defining and registering MCP tools
  */
-export interface ToolMetadata {
-  /** Examples showing how to use the tool */
-  examples: ToolExample[];
-  /** Optional permission required for this tool */
-  requiredPermission?: string;
-  /** Optional schema for the return value */
-  returnSchema?: z.ZodType<unknown>;
-  /** Rate limit configuration for the tool */
-  rateLimit?: RateLimitConfig;
-  /** Whether this tool can be used without authentication */
-  allowUnauthenticated?: boolean;
-}
+export abstract class Tool<TInput extends BaseToolInput, TResponse extends McpToolResponse> {
+  protected abstract name: string;
+  protected abstract description: string;
+  protected abstract inputSchema: z.ZodType<TInput>;
+  protected abstract examples?: { name: string; input: TInput; description?: string }[];
 
-/**
- * Create a tool example
- * 
- * @param input Example input parameters
- * @param output Expected output (as a formatted string)
- * @param description Description of what the example demonstrates
- * @returns A tool example object
- */
-export function createToolExample(
-  input: Record<string, unknown>,
-  output: string,
-  description: string
-): ToolExample {
-  return {
-    input,
-    output,
-    description
-  };
-}
+  /**
+   * Abstract method to handle the tool execution logic
+   * @param input Validated tool input
+   * @param context Operation context
+   * @returns Tool response
+   */
+  protected abstract handle(input: TInput, context: OperationContext): Promise<TResponse>;
 
-/**
- * Create tool metadata
- * 
- * @param metadata Tool metadata options
- * @returns Tool metadata configuration
- */
-export function createToolMetadata(metadata: ToolMetadata): ToolMetadata {
-  return metadata;
-}
+  /**
+   * Get the registration options for this tool
+   * @returns Tool registration options
+   */
+  public getRegistrationOptions(): ToolRegistrationOptions<TInput> {
+    return {
+      inputSchema: this.inputSchema,
+      description: this.description,
+      examples: this.examples
+    };
+  }
 
-/**
- * Register a tool with the MCP server
- * 
- * This is a compatibility wrapper for the McpServer.tool() method.
- * In the current implementation, the tool registration is handled by the McpServer class,
- * so this function primarily exists to provide a consistent API.
- * 
- * @param server MCP server instance
- * @param name Tool name
- * @param description Tool description
- * @param inputSchema Schema for validating input
- * @param handler Handler function for the tool
- * @param metadata Optional tool metadata
- */
-export function registerTool(
-  server: any,  // Using any to avoid type conflicts with McpServer potentially
-  name: string, 
-  description: string, 
-  inputSchema: Record<string, z.ZodType<any>>, 
-  handler: (input: unknown, context: OperationContext) => Promise<unknown>,
-  metadata?: ToolMetadata  
-): Promise<void> {
-  const registrationContext = { ...toolModuleContext, toolName: name };
-  
-  return ErrorHandler.tryCatch<void>(
-    async () => {
-      // Log the registration attempt
-      logger.info(`Registering tool: ${name}`, {
-        ...registrationContext,
-        schemaKeys: Object.keys(inputSchema),
-        hasMetadata: Boolean(metadata),
-        hasExamples: Boolean(metadata?.examples?.length)
-      });
+  /**
+   * Get the handler function for this tool, including validation and error handling
+   * @returns Tool handler function
+   */
+  public getHandler(): ToolHandler<TInput, TResponse> {
+    return async (rawInput: unknown, context: OperationContext): Promise<TResponse> => {
+      const operation = `Executing tool: ${this.name}`;
+      const logContext = { toolName: this.name, requestId: context.requestContext?.requestId };
       
-      // Some basic validation
-      if (!name) {
-        throw new Error('Tool name is required');
-      }
-      
-      if (!inputSchema) {
-        throw new Error('Input schema is required');
-      }
-      
-      if (!handler || typeof handler !== 'function') {
-        throw new Error('Handler must be a function');
-      }
+      logger.debug(`${operation} - Received input`, { ...logContext, rawInput });
 
-      // Convert schema to a more standardized format if needed for logging
-      const schemaDescription = Object.entries(inputSchema).map(([key, schema]) => {
-        const description = schema.description;
-        // Check if the schema is optional using Zod's introspection
-        const isRequired = !(schema instanceof z.ZodOptional || schema instanceof z.ZodDefault); 
-        return `${key}${isRequired ? ' (required)' : ''}: ${description || 'No description'}`;
-      }).join('\n');
+      return ErrorHandler.tryCatch(
+        async () => {
+          // Validate input
+          let validatedInput: TInput;
+          try {
+            validatedInput = this.inputSchema.parse(rawInput);
+            logger.debug(`${operation} - Input validated`, logContext);
+          } catch (validationError) {
+            logger.warn(`${operation} - Validation failed`, { 
+              ...logContext, 
+              error: validationError instanceof Error ? validationError.message : 'Unknown validation error' 
+            });
+            throw new McpError(
+              BaseErrorCode.VALIDATION_ERROR,
+              `Invalid input for tool '${this.name}': ${validationError instanceof Error ? validationError.message : 'Unknown validation error'}`,
+              { toolName: this.name }
+            );
+          }
 
-      logger.debug(`Tool ${name} schema:`, {
-        ...registrationContext,
-        schema: schemaDescription
-      });
-
-      // Actually register the tool with the server
-      // Check if it's an McpServer instance with tool() method
-      if (server.tool && typeof server.tool === 'function') {
-        // Use the McpServer.tool() method directly
-        logger.debug('Using McpServer.tool() method', registrationContext);
-        server.tool(name, inputSchema, handler, {
-          description,
-          examples: metadata?.examples
-        });
-      } else {
-        // For other server types or for testing, log a warning
-        logger.warn(`Unable to register tool ${name} with server - missing tool() method`, registrationContext);
-      }
-
-      // Log successful registration
-      logger.info(`Tool ${name} registered successfully`, registrationContext);
-    },
-    {
-      context: registrationContext, // Pass context to ErrorHandler
-      operation: "registering tool",
-      errorMapper: (error) => new Error(`Failed to register tool ${name}: ${error instanceof Error ? error.message : String(error)}`),
-      rethrow: true
-    }
-  );
+          // Execute the tool's handle method
+          const result = await this.handle(validatedInput, context);
+          logger.debug(`${operation} - Execution successful`, logContext);
+          return result;
+        },
+        {
+          operation,
+          context: { ...logContext, toolName: this.name },
+          input: rawInput, // Log raw input on error
+          rethrow: true, // Rethrow errors to be handled by the server
+          errorMapper: (error) => {
+            // If it's already an McpError, just add context
+            if (error instanceof McpError) {
+              error.details = { ...error.details, toolName: this.name };
+              return error;
+            }
+            // Otherwise, wrap it
+            return new McpError(
+              BaseErrorCode.INTERNAL_ERROR,
+              `Error executing tool '${this.name}': ${error instanceof Error ? error.message : 'Unknown error'}`,
+              { toolName: this.name, originalError: error instanceof Error ? error.name : typeof error }
+            );
+          }
+        }
+      );
+    };
+  }
 }

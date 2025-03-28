@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"; // Add .js
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"; // Corrected import
 import { z } from 'zod';
 import { BaseErrorCode, McpError } from "../../../types-global/errors.js"; // Add .js
 import { ErrorHandler } from "../../../utils/errorHandler.js"; // Add .js
@@ -62,13 +62,33 @@ const processEchoMessage = (params: EchoToolInput) => { // Use validated EchoToo
   return response;
 };
 
+// Define the Zod schema for input parameters separately
+const inputSchema = z.object({
+  message: z.string().min(1).max(1000).describe(
+    'The message to echo back (1-1000 characters)'
+  ),
+  mode: z.enum(ECHO_MODES).optional().default('standard').describe(
+    'How to format the echoed message: standard (as-is), uppercase, or lowercase'
+  ),
+  repeat: z.number().int().min(1).max(10).optional().default(1).describe(
+    'Number of times to repeat the message (1-10)'
+  ),
+  timestamp: z.boolean().optional().default(true).describe(
+    'Whether to include a timestamp in the response'
+  )
+});
+
+// Infer the type from the Zod schema
+type EchoInputParams = z.infer<typeof inputSchema>;
+
+
 /**
  * Register the echo tool directly with the MCP server instance.
  * 
- * @param server - The MCP server instance to register the tool with
+ * @param server - The MCP server instance to register the tool with (Type corrected to McpServer)
  * @returns Promise resolving when registration is complete
  */
-export const registerEchoTool = async (server: McpServer): Promise<void> => {
+export const registerEchoTool = async (server: McpServer): Promise<void> => { // Type corrected here
   const toolName = "echo_message";
   const registrationContext = { ...toolModuleContext, toolName };
 
@@ -80,31 +100,17 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
       // Register the tool directly using server.tool()
       server.tool(
         toolName, 
-        // Input schema
-        {
-          message: z.string().min(1).max(1000).describe(
-            'The message to echo back (1-1000 characters)'
-          ),
-          mode: z.enum(ECHO_MODES).optional().default('standard').describe(
-            'How to format the echoed message: standard (as-is), uppercase, or lowercase'
-          ),
-          repeat: z.number().int().min(1).max(10).optional().default(1).describe(
-            'Number of times to repeat the message (1-10)'
-          ),
-          timestamp: z.boolean().optional().default(true).describe(
-            'Whether to include a timestamp in the response'
-          )
-        },
+        inputSchema.shape, // Pass the raw shape, not the Zod object
         // Handler function - uses global logger if needed
-        async (params) => {
+        async (params: EchoInputParams) => { // Added type for params
           const handlerContext = { ...registrationContext, operation: 'handleRequest', params };
           logger.debug("Handling echo tool request", handlerContext);
 
           // Use ErrorHandler.tryCatch for the handler logic
           return await ErrorHandler.tryCatch(
             async () => {
-              // processEchoMessage expects EchoToolInput, params should match
-              const response = processEchoMessage(params as EchoToolInput); 
+              // processEchoMessage expects EchoToolInput, params matches EchoInputParams
+              const response = processEchoMessage(params); 
 
               // Return in the standard MCP format
               return {
@@ -121,7 +127,7 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
               // Provide custom error mapping for better error messages
               errorMapper: (error) => new McpError(
                 // Use VALIDATION_ERROR for processing errors if they stem from bad input logic
-                error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR, 
+                error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR, // Keep using BaseErrorCode here
                 `Error processing echo message: ${error instanceof Error ? error.message : 'Unknown error'}`,
                 { toolName } // Context for McpError
               )
@@ -135,9 +141,9 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
     {
       operation: `registering tool ${toolName}`,
       context: registrationContext, // Context for registration error
-      errorCode: BaseErrorCode.INTERNAL_ERROR,
+      errorCode: BaseErrorCode.INTERNAL_ERROR, // Keep using BaseErrorCode here
       errorMapper: (error) => new McpError(
-        error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
+        error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR, // Keep using BaseErrorCode here
         `Failed to register tool '${toolName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
         { toolName } // Context for McpError
       ),
