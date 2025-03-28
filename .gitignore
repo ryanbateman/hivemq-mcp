@@ -166,3 +166,4 @@ coverage/
 .history/
 *repomix*
 mcp-servers.json
+logs/

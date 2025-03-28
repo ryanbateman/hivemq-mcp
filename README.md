@@ -1,8 +1,8 @@
 # MCP TypeScript Template
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
-[![Model Context Protocol](https://img.shields.io/badge/MCP-1.7.0-green.svg)](https://modelcontextprotocol.io/)
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.2-blue.svg)](https://www.typescriptlang.org/)
+[![Model Context Protocol](https://img.shields.io/badge/MCP-^1.8.0-green.svg)](https://modelcontextprotocol.io/)
+[![Version](https://img.shields.io/badge/Version-1.0.1-blue.svg)]()
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
@@ -18,7 +18,7 @@ Copy this repo to kickstart your own MCP server and set your **vibe code** sessi
 - **Security**: Built-in security features to protect against common vulnerabilities.
 - **Error Handling**: A robust error handling system that categorizes and formats errors consistently.
 - **Documentation**: Comprehensive documentation for tools and resources, including usage examples and implementation details.
-- **Example Implementations**: Working examples of [echo_message (tool)](src/mcp-server/tools/echoTool/README.md) and [echo://hello (resource)](src/mcp-server/resources/echoResource/README.md) to help you get started quickly.
+- **Example Implementations**: Working examples of [echo_message (tool)](src/mcp-server/tools/echoTool/) and [echo://hello (resource)](src/mcp-server/resources/echoResource/) to help you get started quickly.
 
 > **.clinerules**: This repository includes a [.clinerules](.clinerules) file that serves as a developer cheat sheet for your LLM coding agent with quick reference for the codebase patterns, file locations, and code snippets. When copying this template for your own project, be sure to update the cheat sheet to reflect your modifications and additions.
 
@@ -116,26 +116,26 @@ Core Components:
 - **Logging System**: Structured logging with sensitive data redaction
 - **Error Handling**: Centralized error processing with consistent patterns
 - **MCP Server**: Protocol implementation for tools and resources
-- **Validation Layer**: Input validation using [Zod](https://github.com/colinhacks/zod) schemas
+- **Validation Layer**: Input validation and sanitization using `validator` and `sanitize-html`.
 - **Utilities**: Reusable utility functions for common operations
 
 ## Features
 
 ### Core Utilities
 
-- **[Logging](src/utils/README.md#-logger)**: Configurable logging with file rotation and sensitive data redaction
-- **[Error Handling](src/utils/README.md#-error-handler)**: Pattern-based error classification and standardized reporting
-- **[ID Generation](src/utils/README.md#-id-generator)**: Secure unique identifier creation with prefix support
-- **[Rate Limiting](src/utils/README.md#-rate-limiter)**: Request throttling to prevent API abuse
-- **[Request Context](src/utils/README.md#-request-context)**: Request tracking and correlation
-- **[Sanitization](src/utils/README.md#-sanitization)**: Input validation and cleaning
+- **Logging**: Configurable logging with file rotation and sensitive data redaction
+- **Error Handling**: Pattern-based error classification and standardized reporting
+- **ID Generation**: Secure unique identifier creation with prefix support
+- **Rate Limiting**: Request throttling to prevent API abuse
+- **Request Context**: Request tracking and correlation
+- **Sanitization**: Input validation and cleaning using `validator` and `sanitize-html`.
 
 ### Type Safety
 
-- **[Global Types](src/types-global/README.md)**: Shared type definitions for consistent interfaces
-- **[Error Types](src/types-global/README.md#error-types)**: Standardized error codes and structures
-- **[MCP Protocol Types](src/types-global/README.md#mcp-protocol-types)**: Type definitions for the MCP protocol
-- **[Tool Types](src/types-global/README.md#tool-types)**: Interfaces for tool registration and configuration
+- **Global Types**: Shared type definitions for consistent interfaces
+- **Error Types**: Standardized error codes and structures
+- **MCP Protocol Types**: Type definitions for the MCP protocol
+- **Tool Types**: Interfaces for tool registration and configuration
 
 ### Error Handling
 
@@ -146,16 +146,15 @@ Core Components:
 
 ### Security
 
-- **Input Validation**: Schema-based validation using Zod
-- **Input Sanitization**: Protection against injection attacks
-- **Parameter Bounds**: Enforced limits to prevent abuse
-- **Sensitive Data Redaction**: Automatic redaction in logs
+- **Input Validation**: Using `validator` for various data type checks.
+- **Input Sanitization**: Using `sanitize-html` to prevent injection attacks.
+- **Parameter Bounds**: Enforced limits within sanitization logic to prevent abuse.
+- **Sensitive Data Redaction**: Automatic redaction in logs.
 
 ### Example Implementations
 
-- **[Echo Tool](src/mcp-server/tools/echoTool/README.md)**: Complete example of a tool implementation
-- **[Echo Resource](src/mcp-server/resources/echoResource/README.md)**: Complete example of a resource implementation
-- **[Registration Helpers](src/mcp-server/utils/README.md)**: Utilities for consistent component registration
+- **[Echo Tool](src/mcp-server/tools/echoTool/)**: Complete example of a tool implementation including registration.
+- **[Echo Resource](src/mcp-server/resources/echoResource/)**: Complete example of a resource implementation including registration.
 
 ## Installation
 
@@ -185,11 +184,6 @@ Core Components:
    npm run build
    ```
 
-4. Start the server:
-   ```bash
-   npm run start
-   ```
-
 ## Configuration
 
 ### Environment Variables (Optional)
@@ -208,7 +202,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 ### Configuration System
 
-The [configuration system](src/config/README.md) provides a flexible way to manage settings:
+The configuration system provides a flexible way to manage settings:
 
 - **Environment Config**: Load settings from environment variables
 - **MCP Servers Config**: Configure MCP server connections (for future client implementations)
@@ -216,40 +210,15 @@ The [configuration system](src/config/README.md) provides a flexible way to mana
 
 ## Project Structure
 
-The codebase follows a modular structure:
+The codebase follows a modular structure within the `src/` directory, including configurations (`config/`), MCP server logic (`mcp-server/` with tools and resources), global types (`types-global/`), and common utilities (`utils/`).
+
+For a detailed, up-to-date view of the project structure, run the following command:
 
 ```bash
-src/
-├── config/                 # Configuration management
-│   ├── envConfig.ts        # Environment variable handling
-│   ├── index.ts            # Unified configuration
-│   └── mcpConfig.ts        # MCP server configuration
-│
-├── mcp-server/             # MCP server implementation
-│   ├── resources/          # Resource implementations
-│   │   └── echoResource/   # Example resource
-│   ├── tools/              # Tool implementations
-│   │   └── echoTool/       # Example tool
-│   └── utils/              # Server utilities
-│       └── registrationHelper.ts  # Registration helpers
-│
-├── types-global/           # Shared type definitions
-│   ├── errors.ts           # Error types and codes
-│   ├── mcp.ts              # MCP protocol types
-│   └── tool.ts             # Tool registration types
-│
-├── utils/                  # Common utilities
-│   ├── errorHandler.ts     # Error handling
-│   ├── idGenerator.ts      # ID generation
-│   ├── logger.ts           # Logging system
-│   ├── rateLimiter.ts      # Rate limiting
-│   ├── requestContext.ts   # Request context
-│   ├── sanitization.ts     # Input sanitization
-│   └── security.ts         # Security utilities
-│
-└── [index.ts](src/index.ts)                # Application entry point
-.clinerules                 # Developer cheat sheet for LLM coding agent
+npm run tree
 ```
+
+This command executes the `scripts/tree.ts` script, which generates a tree representation of the current project layout.
 
 ## Tool & Resource Documentation
 
@@ -259,7 +228,7 @@ src/
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Echo Tool** | Formats and echoes messages with various options. Demonstrates input validation, error handling, and proper response formatting. |
 
-See the [Echo Tool documentation](src/mcp-server/tools/echoTool/README.md) for detailed usage examples and implementation details.
+See the [Echo Tool implementation](src/mcp-server/tools/echoTool/) for detailed usage examples and implementation details.
 
 ### Resources
 
@@ -267,47 +236,71 @@ See the [Echo Tool documentation](src/mcp-server/tools/echoTool/README.md) for d
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | **Echo Resource** | Returns echo messages based on input parameters. Demonstrates resource registration, URI handling, and consistent response formatting. |
 
-See the [Echo Resource documentation](src/mcp-server/resources/echoResource/README.md) for detailed usage examples and implementation details.
+See the [Echo Resource implementation](src/mcp-server/resources/echoResource/) for detailed usage examples and implementation details.
 
 ## Development Guidelines
 
 ### Adding a New Tool
 
-1. Create a new directory under [`src/mcp-server/tools/`](src/mcp-server/tools/)
-2. Define types and schemas in a `types.ts` file
-3. Implement the handler in a dedicated file
-4. Create an `index.ts` file that registers the tool
-5. Add your tool to the server registration in [`src/mcp-server/server.ts`](src/mcp-server/server.ts)
-
-Example tool registration:
+1.  **Create Directory**: Create a new directory for your tool under `src/mcp-server/tools/` (e.g., `src/mcp-server/tools/myNewTool/`).
+2.  **Define Logic & Schema**: In a `myNewToolLogic.ts` file:
+    - Define TypeScript interfaces for the tool's input and output.
+    - Define the input validation schema (e.g., using Zod, although this template currently uses `validator` and manual checks).
+    - Implement the core logic function that takes validated input and returns the output.
+3.  **Implement Registration**: In a `registration.ts` file:
+    - Import necessary types, the schema shape, the logic function, `McpServer`, `ErrorHandler`, and `logger`.
+    - Create an `async` function (e.g., `registerMyNewTool`) that accepts the `McpServer` instance.
+    - Inside this function, use `ErrorHandler.tryCatch` to wrap the `server.tool()` call.
+    - Call `server.tool()` with:
+      - The tool name (string).
+      - The input schema's shape (e.g., `MyToolInputSchema.shape`).
+      - An `async` handler function that:
+        - Takes the validated `params`.
+        - Uses `ErrorHandler.tryCatch` to wrap the call to your core logic function.
+        - Formats the result according to the MCP specification (e.g., `{ content: [{ type: "text", text: JSON.stringify(result) }] }`).
+        - Includes appropriate logging.
+4.  **Export Registration**: In an `index.ts` file within your tool's directory, export the registration function (e.g., `export { registerMyNewTool } from './registration.js';`).
+5.  **Register in Server**: In `src/mcp-server/server.ts`, import your registration function and call it, passing the `server` instance (e.g., `await registerMyNewTool(server);`).
 
 ```typescript
-// In your tool's index.ts
-export const registerMyTool = async (server: McpServer): Promise<void> => {
-  return registerTool(server, { name: "my_tool" }, async (server, logger) => {
-    server.tool(
-      "my_tool",
-      {
-        /* input schema */
-      },
-      async (params) => {
-        // Your implementation
-      }
-    );
-  });
-};
-
-// In src/mcp-server/server.ts
-await registerMyTool(mcpServer);
+// In src/mcp-server/server.ts:
+// import { registerMyNewTool } from './tools/myNewTool/index.js';
+// ...
+// await registerMyNewTool(server);
 ```
 
 ### Adding a New Resource
 
-1. Create a new directory under [`src/mcp-server/resources/`](src/mcp-server/resources/)
-2. Define types and schemas in a `types.ts` file
-3. Implement the handler in a dedicated file
-4. Create an `index.ts` file that registers the resource
-5. Add your resource to the server registration in [`src/mcp-server/server.ts`](src/mcp-server/server.ts)
+1.  **Create Directory**: Create a new directory for your resource under `src/mcp-server/resources/` (e.g., `src/mcp-server/resources/myNewResource/`).
+2.  **Define Logic & Schema**: In a `myNewResourceLogic.ts` file:
+    - Define TypeScript interfaces for any parameters (path or query).
+    - Define the query validation schema if needed (e.g., using Zod, although this template currently uses `validator` and manual checks).
+    - Implement the core logic function that takes the `uri` (URL object) and validated `params` and returns the resource data.
+3.  **Implement Registration**: In a `registration.ts` file:
+    - Import necessary types, schemas, the logic function, `McpServer`, `ResourceTemplate`, `ErrorHandler`, and `logger`.
+    - Create an `async` function (e.g., `registerMyNewResource`) that accepts the `McpServer` instance.
+    - Inside this function, use `ErrorHandler.tryCatch` to wrap the registration process.
+    - Define a `ResourceTemplate` with the URI pattern and any `list` or `complete` operations.
+    - Call `server.resource()` with:
+      - A unique resource registration name (string).
+      - The `ResourceTemplate` instance.
+      - Resource metadata (name, description, mimeType, querySchema, examples).
+      - An `async` handler function that:
+        - Takes the `uri` (URL) and validated `params`.
+        - Uses `ErrorHandler.tryCatch` to wrap the call to your core logic function.
+        - Formats the result according to the MCP specification (e.g., `{ contents: [{ uri: uri.href, text: JSON.stringify(result), mimeType: "application/json" }] }`).
+        - Includes appropriate logging.
+4.  **Export Registration**: In an `index.ts` file within your resource's directory, export the registration function (e.g., `export { registerMyNewResource } from './registration.js';`).
+5.  **Register in Server**: In `src/mcp-server/server.ts`, import your registration function and call it, passing the `server` instance (e.g., `await registerMyNewResource(server);`).
+
+Example `registration.ts` structure
+
+```typescript
+// In src/mcp-server/server.ts:
+// import { registerMyNewResource } from './resources/myNewResource/index.js';
+// ...
+// await registerMyNewResource(server);
+```
 
 ## Future Plans
 
