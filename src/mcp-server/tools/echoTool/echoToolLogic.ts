@@ -1,4 +1,12 @@
-import { z } from 'zod';
+import { z } from 'zod'; // Import z here
+import { logger } from "../../../utils/logger.js";
+
+// Define context for logging within this tool logic module
+const toolLogicContext = {
+  module: 'EchoToolLogic'
+};
+
+// --- Schema and Type Definitions (Moved from types.ts) ---
 
 /**
  * Defines the valid formatting modes for the echo tool operation.
@@ -59,3 +67,55 @@ export interface EchoToolResponse {
   /** Optional ISO 8601 timestamp indicating when the response was generated. Included if `timestamp` input was true. */
   timestamp?: string;
 }
+
+// --- Core Logic Function ---
+
+/**
+ * Processes the core logic for the echo tool.
+ * Formats and repeats the message based on the provided parameters.
+ *
+ * @function processEchoMessage
+ * @param {EchoToolInput} params - The validated input parameters for the echo tool.
+ * @returns {EchoToolResponse} The processed response data, including original message, formatted/repeated message, and optional timestamp.
+ */
+export const processEchoMessage = (params: EchoToolInput): EchoToolResponse => {
+  const processingContext = { ...toolLogicContext, operation: 'processEchoMessage', inputMessage: params.message, mode: params.mode };
+  logger.debug("Processing echo message logic", processingContext);
+
+  // Process the message according to the requested mode
+  let formattedMessage = params.message;
+  switch (params.mode) {
+    case 'uppercase':
+      formattedMessage = params.message.toUpperCase();
+      break;
+    case 'lowercase':
+      formattedMessage = params.message.toLowerCase();
+      break;
+    // 'standard' mode keeps the message as-is
+  }
+
+  // Repeat the message the specified number of times, ensuring it's within bounds
+  // Use nullish coalescing for default repeat value from schema
+  const safeRepeatCount = Math.min(params.repeat ?? 1, 10);
+  const repeatedMessage = Array(safeRepeatCount)
+    .fill(formattedMessage)
+    .join(' ');
+
+  // Prepare the response data using the imported EchoToolResponse type
+  const response: EchoToolResponse = {
+    originalMessage: params.message,
+    formattedMessage,
+    repeatedMessage,
+    // Use nullish coalescing for default mode value from schema
+    mode: params.mode ?? 'standard',
+    repeatCount: safeRepeatCount
+  };
+
+  // Add timestamp if requested (default is true based on schema)
+  if (params.timestamp !== false) {
+    response.timestamp = new Date().toISOString();
+  }
+
+  logger.debug("Echo message processed successfully", { ...processingContext, response });
+  return response;
+};
