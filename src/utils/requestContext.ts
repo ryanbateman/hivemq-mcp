@@ -1,5 +1,5 @@
 import { logger } from './logger.js';
-import { RequestContext } from './rateLimiter.js';
+import { RequestContext } from './rateLimiter.js'; // Assuming RequestContext is defined here or globally
 
 /**
  * Configuration interface for request context utilities
@@ -19,61 +19,38 @@ export interface OperationContext {
   [key: string]: unknown;
 }
 
-/**
- * Request context utilities class
- */
-export class RequestContextService {
-  private static instance: RequestContextService;
-  private config: ContextConfig = {};
-
-  /**
-   * Private constructor to enforce singleton pattern
-   */
-  private constructor() {
-    logger.debug('RequestContext service initialized');
-  }
-
-  /**
-   * Get the singleton RequestContextService instance
-   * @returns RequestContextService instance
-   */
-  public static getInstance(): RequestContextService {
-    if (!RequestContextService.instance) {
-      RequestContextService.instance = new RequestContextService();
-    }
-    return RequestContextService.instance;
-  }
+// Direct instance for request context utilities
+const requestContextServiceInstance = {
+  config: {} as ContextConfig,
 
   /**
    * Configure service settings
    * @param config New configuration
    * @returns Updated configuration
    */
-  public configure(config: Partial<ContextConfig>): ContextConfig {
+  configure(config: Partial<ContextConfig>): ContextConfig {
     this.config = {
       ...this.config,
       ...config
     };
-    
-    logger.debug('RequestContext configuration updated');
-    
+    logger.debug('RequestContext configuration updated', { config: this.config });
     return { ...this.config };
-  }
+  },
 
   /**
    * Get current configuration
    * @returns Current configuration
    */
-  public getConfig(): ContextConfig {
+  getConfig(): ContextConfig {
     return { ...this.config };
-  }
+  },
 
   /**
    * Create a request context with unique ID and timestamp
    * @param additionalContext Additional context properties
    * @returns Request context object
    */
-  public createRequestContext(
+  createRequestContext(
     additionalContext: Record<string, unknown> = {}
   ): RequestContext {
     const requestId = crypto.randomUUID();
@@ -84,7 +61,7 @@ export class RequestContextService {
       timestamp,
       ...additionalContext
     };
-  }
+  },
 
   /**
    * Generate a secure random string
@@ -92,7 +69,7 @@ export class RequestContextService {
    * @param chars Character set to use
    * @returns Random string
    */
-  public generateSecureRandomString(
+  generateSecureRandomString(
     length: number = 32,
     chars: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   ): string {
@@ -106,33 +83,15 @@ export class RequestContextService {
     
     return result;
   }
-}
-
-// Create and export singleton instance
-export const requestContextService = RequestContextService.getInstance();
-
-// Export convenience functions that delegate to the singleton instance
-export const configureContext = (config: Partial<ContextConfig>): ContextConfig => {
-  return requestContextService.configure(config);
 };
 
-export const createRequestContext = (
-  additionalContext: Record<string, unknown> = {}
-): RequestContext => {
-  return requestContextService.createRequestContext(additionalContext);
-};
+// Initialize logger message
+logger.debug('RequestContext service initialized');
 
-export const generateSecureRandomString = (
-  length: number = 32,
-  chars: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-): string => {
-  return requestContextService.generateSecureRandomString(length, chars);
-};
+// Export the instance directly
+export const requestContextService = requestContextServiceInstance;
 
-// Export default utilities
-export default {
-  requestContextService,
-  configureContext,
-  createRequestContext,
-  generateSecureRandomString
-};
+// Removed delegate functions and default export for simplicity.
+// Users should import and use `requestContextService` directly.
+// e.g., import { requestContextService } from './requestContext.js';
+// requestContextService.createRequestContext();

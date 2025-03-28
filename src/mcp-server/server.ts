@@ -1,80 +1,93 @@
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'; // Import McpServer
-import {
-  ErrorCode, // Import SDK ErrorCode
-  McpError,
-} from '@modelcontextprotocol/sdk/types.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { config, environment } from '../config/index.js';
 import { ErrorHandler } from '../utils/errorHandler.js';
 import { logger } from '../utils/logger.js';
-import { configureContext } from "../utils/requestContext.js";
+import { requestContextService } from "../utils/requestContext.js"; // Import the service
 import { registerEchoResource } from './resources/echoResource/index.js';
 import { registerEchoTool } from './tools/echoTool/index.js';
 
 /**
- * Create and configure the main MCP server instance
- * @returns The configured MCP server instance
+ * Creates, configures, and connects the main MCP server instance.
+ * This function initializes the server with configuration values, registers
+ * available resources and tools, and establishes communication via stdio.
+ *
+ * @async
+ * @function createMcpServer
+ * @returns {Promise<McpServer>} A promise that resolves with the configured and connected McpServer instance.
+ * @throws {Error} Throws an error if critical failures occur during registration or connection.
  */
-export const createMcpServer = async () => {
-  // Configure request context settings
-  configureContext({
+export const createMcpServer = async (): Promise<McpServer> => {
+  const operationContext = { operation: 'ServerInitialization' };
+  logger.info("Initializing MCP server...", operationContext);
+
+  // Configure request context settings using the service
+  requestContextService.configure({
     appName: config.mcpServerName,
     appVersion: config.mcpServerVersion,
     environment: environment
   });
+  logger.debug("Request context service configured.", operationContext);
 
   // Create the server instance using McpServer
-  const server = new McpServer( // Use McpServer instead of Server
+  const server = new McpServer(
     {
       name: config.mcpServerName,
       version: config.mcpServerVersion,
     },
     {
       capabilities: {
-        // Capabilities are defined via registration functions
+        // Capabilities are defined dynamically via registration functions below
         resources: {},
         tools: {},
       },
     }
   );
-
-  // Removed server.onerror assignment - global errors handled by process handlers in index.ts
+  logger.debug("McpServer instance created.", { ...operationContext, serverName: config.mcpServerName });
 
   // Register resources and tools using their dedicated functions
   try {
+    logger.info("Registering resources and tools...", operationContext);
     // Pass the McpServer instance to the registration functions
     await registerEchoResource(server);
+    logger.debug("Echo resource registered.", operationContext);
     await registerEchoTool(server);
+    logger.debug("Echo tool registered.", operationContext);
+    logger.info("Resources and tools registered successfully.", operationContext);
   } catch (registrationError) {
-     // ErrorHandler within registration functions should handle logging/throwing
-     logger.error("Critical error during resource/tool registration", {
+     // ErrorHandler within registration functions should handle specific logging/throwing
+     // This catch block handles unexpected errors during the registration process itself
+     logger.error("Critical error during resource/tool registration process", {
+        ...operationContext,
         error: registrationError instanceof Error ? registrationError.message : String(registrationError),
         stack: registrationError instanceof Error ? registrationError.stack : undefined,
-        operation: 'Server Initialization'
      });
      // Rethrow to halt server startup if registration fails critically
      throw registrationError;
   }
 
-
   // Connect the server using Stdio transport
   try {
+    logger.info("Connecting server via Stdio transport...", operationContext);
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    logger.info(`${config.mcpServerName} connected via stdio`, {
+    logger.info(`${config.mcpServerName} connected successfully via stdio`, {
+      ...operationContext,
       serverName: config.mcpServerName,
       version: config.mcpServerVersion
     });
-  } catch (error) {
+  } catch (connectionError) {
     // Handle connection errors specifically
-    ErrorHandler.handleError(error, {
+    ErrorHandler.handleError(connectionError, {
       operation: 'Server Connection',
+      context: operationContext,
       critical: true,
-      rethrow: true // Rethrow to allow startup process to handle exit
+      rethrow: true // Rethrow to allow the main startup process (in index.ts) to handle exit
     });
-    // The line below won't be reached if rethrow is true, but needed for type safety
-    throw error;
+    // The line below won't be reached if rethrow is true, but needed for type safety if rethrow were false
+    throw connectionError;
   }
 
+  logger.info("MCP server initialization complete.", operationContext);
   return server;
 };

@@ -297,56 +297,7 @@ export class ErrorHandler {
       : new Error(String(error));
   }
   
-  /**
-   * Create a simplified error mapper based on error patterns and codes
-   * @param patterns Array of error patterns, codes, and messages
-   * @param defaultErrorCode Default error code if no pattern matches
-   * @returns Error mapper function
-   */
-  public static createErrorMapper(
-    patterns: BaseErrorMapping[],
-    defaultErrorCode: BaseErrorCode = BaseErrorCode.INTERNAL_ERROR
-  ): (error: unknown, context?: Record<string, unknown>) => McpError {
-    return (error: unknown, context?: Record<string, unknown>): McpError => {
-      // Already an McpError
-      if (error instanceof McpError) {
-        // Add any additional context
-        if (context && Object.keys(context).length > 0) {
-          error.details = { ...error.details, ...context };
-        }
-        return error;
-      }
-      
-      const errorMessage = getErrorMessage(error);
-      
-      // Check each pattern for a match
-      for (const { pattern, errorCode, messageTemplate } of patterns) {
-        const matches = pattern instanceof RegExp
-          ? pattern.test(errorMessage)
-          : errorMessage.includes(pattern);
-          
-        if (matches) {
-          // Use template if provided, otherwise use original error message
-          const message = messageTemplate 
-            ? messageTemplate.replace('{message}', errorMessage)
-            : errorMessage;
-            
-          return new McpError(
-            errorCode,
-            message,
-            { originalError: getErrorName(error), ...context }
-          );
-        }
-      }
-      
-      // No matches found, use default
-      return new McpError(
-        defaultErrorCode,
-        errorMessage,
-        { originalError: getErrorName(error), ...context }
-      );
-    };
-  }
+  // Removed createErrorMapper method for simplification
   
   /**
    * Format an error for consistent response structure

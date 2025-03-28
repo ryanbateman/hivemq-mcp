@@ -1,35 +1,41 @@
 import { z } from 'zod';
 
 /**
- * Schema for validating echo resource query parameters
+ * Zod schema for validating echo resource URI parameters derived from the template `echo://{message}`.
+ * Ensures the 'message' part of the URI is present and is a string.
  */
-export const EchoResourceQuerySchema = z.object({
-  message: z.string().optional()
-    .describe('Message to echo back in the response')
+export const EchoResourceParamsSchema = z.object({
+  /** The message extracted from the URI path. */
+  message: z.string()
+    .min(1, "Message parameter cannot be empty") // Add validation for non-empty
+    .describe('Message to echo back in the response, extracted from the URI path segment.')
 }).describe(
-  'Query parameters for the echo resource.\n' +
-  'URI Format: echo://message'
+  'Defines the parameters extracted from the echo resource URI.\n' +
+  'Expected URI Format: echo://{message}'
 );
 
-export type EchoResourceQuery = z.infer<typeof EchoResourceQuerySchema>;
+/**
+ * TypeScript type inferred from `EchoResourceParamsSchema`.
+ * Represents the validated parameters extracted from the resource URI.
+ * @typedef {z.infer<typeof EchoResourceParamsSchema>} EchoResourceParams
+ */
+export type EchoResourceParams = z.infer<typeof EchoResourceParamsSchema>;
 
 /**
- * Response type for the echo resource, matching MCP SDK expectations
+ * Defines the structure of the JSON payload returned by the echo resource handler.
+ * This object is JSON-stringified and placed within the `text` field of the
+ * `ReadResourceResult`'s `contents` array.
  */
-export interface EchoResourceResponse {
-  [key: string]: unknown;
-  contents: [{
-    uri: string;                   // URI identifying this resource
-    text: string;                  // JSON string of EchoData
-    mimeType: "application/json";  // Always JSON for this resource
-  }];
+export interface EchoResponsePayload {
+  /** The message that was echoed. */
+  message: string;
+  /** ISO 8601 timestamp indicating when the response was generated. */
+  timestamp: string;
+  /** The original URI requested by the client. */
+  requestUri: string;
 }
 
-/**
- * Data structure for the echo response
- */
-export interface EchoData {
-  message: string;              // The echoed message
-  timestamp: string;            // When the request was processed
-  requestUri: string;           // The original request URI
-}
+// Removed EchoResourceResponse interface as it was inaccurate and redundant.
+// The resource handler returns a standard ReadResourceResult from the SDK,
+// where the `contents[0].text` field contains a JSON string matching EchoResponsePayload.
+// The `contents[0].mimeType` is "application/json".

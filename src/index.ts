@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 import { config, environment } from "./config/index.js";
 import { createMcpServer } from "./mcp-server/server.js";
-import { BaseErrorCode, McpError } from "./types-global/errors.js";
+import { BaseErrorCode } from "./types-global/errors.js";
 import { ErrorHandler } from "./utils/errorHandler.js";
 import { logger } from "./utils/logger.js";
-import { createRequestContext } from "./utils/requestContext.js"; // Updated import
+// Import the service instance instead of the standalone function
+import { requestContextService } from "./utils/requestContext.js";
 
-// Track the main server instance
+/**
+ * The main MCP server instance.
+ * @type {Awaited<ReturnType<typeof createMcpServer>> | undefined}
+ */
 let server: Awaited<ReturnType<typeof createMcpServer>> | undefined;
 
 /**
- * Gracefully shut down the main server
- * 
- * @param signal - The signal that triggered the shutdown
+ * Gracefully shuts down the main MCP server.
+ * Handles process termination signals (SIGTERM, SIGINT) and critical errors.
+ *
+ * @param signal - The signal or event name that triggered the shutdown (e.g., "SIGTERM", "uncaughtException").
  */
 const shutdown = async (signal: string) => {
   // Define context for the shutdown operation
@@ -20,8 +25,8 @@ const shutdown = async (signal: string) => {
     operation: 'Shutdown',
     signal,
   };
-  
-  logger.info(`Starting graceful shutdown...`, shutdownContext);
+
+  logger.info(`Received ${signal}. Starting graceful shutdown...`, shutdownContext);
 
   try {
     // Close the main MCP server
@@ -37,107 +42,106 @@ const shutdown = async (signal: string) => {
     process.exit(0);
   } catch (error) {
     // Handle any errors during shutdown
-    logger.error("Critical error during shutdown", { 
+    logger.error("Critical error during shutdown", {
       ...shutdownContext,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
-    process.exit(1);
+    process.exit(1); // Exit with error code if shutdown fails
   }
 };
 
 /**
- * Start the main MCP server
+ * Initializes and starts the main MCP server.
+ * Sets up request context, creates the server instance, and registers signal handlers
+ * for graceful shutdown and error handling.
  */
 const start = async () => {
-  // Create application-level request context
-  const startupContext = createRequestContext({
+  // Create application-level request context using the service instance
+  const startupContext = requestContextService.createRequestContext({
     operation: 'ServerStartup',
-    appName: config.mcpServerName, 
+    appName: config.mcpServerName,
     appVersion: config.mcpServerVersion,
     environment: environment // Use imported environment
   });
-  
-  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion}...`, { 
-    ...startupContext, 
-    operation: 'Startup' // Add operation directly
-  });
+
+  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion}...`, startupContext);
 
   try {
     // Create and store the main server instance
-    logger.debug("Creating main MCP server instance", { ...startupContext, operation: 'Startup' });
+    logger.debug("Creating main MCP server instance", startupContext);
+    // Use ErrorHandler to wrap the server creation, ensuring errors are caught and logged
     server = await ErrorHandler.tryCatch(
       async () => await createMcpServer(),
-      { 
-        operation: 'creating main MCP server', 
-        context: { ...startupContext, operation: 'Startup' }, // Use startupContext
+      {
+        operation: 'creating main MCP server',
+        context: startupContext, // Pass the established startup context
         errorCode: BaseErrorCode.INTERNAL_ERROR // Specify error code for failure
       }
     );
-    
-    // Check if server creation resulted in an error
-    if (server instanceof Error) {
-      // If ErrorHandler returns an error, it's already logged. Just throw to exit.
-      throw server; 
-    }
+
+    // If tryCatch encountered an error, it would have thrown,
+    // and execution would jump to the outer catch block.
 
     logger.info(`${config.mcpServerName} is running and awaiting messages`, {
-      ...startupContext, // Use startupContext
-      operation: 'Startup', // Add operation
+      ...startupContext,
       startTime: new Date().toISOString(),
     });
+
+    // --- Signal and Error Handling Setup ---
 
     // Handle process signals for graceful shutdown
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
 
-    // Handle uncaught errors
-    process.on("uncaughtException", async (error) => { // Add async
+    // Handle uncaught exceptions
+    process.on("uncaughtException", async (error) => {
       const errorContext = {
-        ...startupContext, // Include base context
+        ...startupContext, // Include base context for correlation
         event: 'uncaughtException',
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       };
-      logger.error("Uncaught exception detected", errorContext);
+      logger.error("Uncaught exception detected. Initiating shutdown...", errorContext);
       // Attempt graceful shutdown on uncaught exception
       try {
         await shutdown("uncaughtException"); // Await shutdown
       } catch (err) {
-        logger.error("Failed to shutdown gracefully after uncaught exception", { 
-          ...errorContext, 
-          shutdownError: err instanceof Error ? err.message : String(err) 
+        logger.error("Failed to shutdown gracefully after uncaught exception", {
+          ...errorContext,
+          shutdownError: err instanceof Error ? err.message : String(err)
         });
         process.exit(1); // Force exit if shutdown fails
       }
     });
 
-    process.on("unhandledRejection", async (reason: unknown) => { // Add async
+    // Handle unhandled promise rejections
+    process.on("unhandledRejection", async (reason: unknown) => {
       const rejectionContext = {
-        ...startupContext, // Include base context
+        ...startupContext, // Include base context for correlation
         event: 'unhandledRejection',
         reason: reason instanceof Error ? reason.message : String(reason),
         stack: reason instanceof Error ? reason.stack : undefined
       };
-      logger.error("Unhandled rejection detected", rejectionContext);
+      logger.error("Unhandled promise rejection detected. Initiating shutdown...", rejectionContext);
        // Attempt graceful shutdown on unhandled rejection
        try {
          await shutdown("unhandledRejection"); // Await shutdown
        } catch (err) {
-         logger.error("Failed to shutdown gracefully after unhandled rejection", { 
-           ...rejectionContext, 
-           shutdownError: err instanceof Error ? err.message : String(err) 
+         logger.error("Failed to shutdown gracefully after unhandled rejection", {
+           ...rejectionContext,
+           shutdownError: err instanceof Error ? err.message : String(err)
          });
          process.exit(1); // Force exit if shutdown fails
        }
     });
   } catch (error) {
     // Handle critical startup errors (already logged by ErrorHandler or caught above)
-    logger.error("Critical error during startup, exiting.", { 
-      ...startupContext, // Use startupContext
-      // Error should have been logged already, just adding context
+    // Log the final failure context before exiting
+    logger.error("Critical error during startup, exiting.", {
+      ...startupContext,
       finalErrorContext: 'Startup Failure',
-      operation: 'Startup' // Add operation
+      // Error details should have been logged by the specific handler that caught it
     });
     process.exit(1);
   }
