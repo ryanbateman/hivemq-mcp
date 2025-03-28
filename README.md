@@ -186,18 +186,20 @@ Core Components:
 
 ## Configuration
 
-### Environment Variables (Optional)
+### MCP Client Settings & Environment Variables (Optional)
 
-Create a `.env` file based on `.env.example`:
+Add to your MCP client settings:
 
-```bash
-# Server Configuration
-NODE_ENV=development # development, production
-LOG_LEVEL=info # debug, info, warn, error
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX_REQUESTS=100
+```json
+{
+  "mcpServers": {
+    "atlas": {
+      "command": "node",
+      "args": ["/path/to/mcp-ts-template/dist/index.js"],
+      "env": {}
+    }
+  }
+}
 ```
 
 ### Configuration System
@@ -304,29 +306,11 @@ Example `registration.ts` structure
 
 ## Future Plans
 
-This template serves as a foundation for:
-
 - **MCP Client Implementation**: Support for creating MCP clients that connect to various AI models
 
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-```
-Copyright 2025 Casey Hand @cyanheads
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
 
 ---
 
