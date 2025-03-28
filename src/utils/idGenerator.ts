@@ -207,5 +207,3 @@ export const idGenerator = new IdGenerator();
 export const generateUUID = (): string => {
   return crypto.randomUUID();
 };
-
-export default idGenerator;

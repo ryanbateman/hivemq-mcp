@@ -7,11 +7,14 @@ import { logger } from "./utils/logger.js";
 // Import the service instance instead of the standalone function
 import { requestContextService } from "./utils/requestContext.js";
 
+// Define a type alias for the server instance for better readability
+type McpServerInstance = Awaited<ReturnType<typeof createMcpServer>>;
+
 /**
  * The main MCP server instance.
- * @type {Awaited<ReturnType<typeof createMcpServer>> | undefined}
+ * @type {McpServerInstance | undefined}
  */
-let server: Awaited<ReturnType<typeof createMcpServer>> | undefined;
+let server: McpServerInstance | undefined;
 
 /**
  * Gracefully shuts down the main MCP server.
@@ -103,16 +106,12 @@ const start = async () => {
         stack: error instanceof Error ? error.stack : undefined
       };
       logger.error("Uncaught exception detected. Initiating shutdown...", errorContext);
-      // Attempt graceful shutdown on uncaught exception
-      try {
-        await shutdown("uncaughtException"); // Await shutdown
-      } catch (err) {
-        logger.error("Failed to shutdown gracefully after uncaught exception", {
-          ...errorContext,
-          shutdownError: err instanceof Error ? err.message : String(err)
-        });
-        process.exit(1); // Force exit if shutdown fails
-      }
+      // Attempt graceful shutdown; shutdown() handles its own errors.
+      await shutdown("uncaughtException");
+      // If shutdown fails internally, it will call process.exit(1).
+      // If shutdown succeeds, it calls process.exit(0).
+      // If shutdown itself throws unexpectedly *before* exiting, this process might terminate abruptly,
+      // but the core shutdown logic is handled within shutdown().
     });
 
     // Handle unhandled promise rejections
@@ -124,24 +123,18 @@ const start = async () => {
         stack: reason instanceof Error ? reason.stack : undefined
       };
       logger.error("Unhandled promise rejection detected. Initiating shutdown...", rejectionContext);
-       // Attempt graceful shutdown on unhandled rejection
-       try {
-         await shutdown("unhandledRejection"); // Await shutdown
-       } catch (err) {
-         logger.error("Failed to shutdown gracefully after unhandled rejection", {
-           ...rejectionContext,
-           shutdownError: err instanceof Error ? err.message : String(err)
-         });
-         process.exit(1); // Force exit if shutdown fails
-       }
+      // Attempt graceful shutdown; shutdown() handles its own errors.
+      await shutdown("unhandledRejection");
+      // Similar logic as uncaughtException: shutdown handles its exit codes.
     });
   } catch (error) {
     // Handle critical startup errors (already logged by ErrorHandler or caught above)
-    // Log the final failure context before exiting
+    // Log the final failure context, including error details, before exiting
     logger.error("Critical error during startup, exiting.", {
       ...startupContext,
       finalErrorContext: 'Startup Failure',
-      // Error details should have been logged by the specific handler that caught it
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
     process.exit(1);
   }

@@ -129,10 +129,15 @@ export class Sanitization {
   }
 
   /**
-   * Sanitize string input based on context
+   * Sanitize string input based on context.
+   *
+   * **Important:** Using `context: 'javascript'` is explicitly disallowed and will throw an `McpError`.
+   * This is a security measure to prevent accidental execution or ineffective sanitization of JavaScript code.
+   *
    * @param input String to sanitize
    * @param options Sanitization options
    * @returns Sanitized string
+   * @throws {McpError} If `context: 'javascript'` is used.
    */
   public sanitizeString(input: string, options: SanitizeStringOptions = {}): string {
     if (!input) return '';

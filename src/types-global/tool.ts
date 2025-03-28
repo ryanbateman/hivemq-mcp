@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BaseErrorCode, McpError } from './errors.js'; // Add .js
+import { McpToolResponse } from './mcp.js'; // Import McpToolResponse
 import { OperationContext } from "../utils/requestContext.js"; // Updated import
 import { ErrorHandler } from "../utils/errorHandler.js"; // Add .js
 import { logger } from "../utils/logger.js"; // Add .js
@@ -16,17 +17,6 @@ export interface BaseToolInput {
  */
 export interface BaseToolResponse {
   [key: string]: unknown;
-}
-
-/**
- * Standard MCP tool response format
- */
-export interface McpToolResponse {
-  content: {
-    type: "text" | "json" | "markdown";
-    text: string;
-  }[];
-  isError?: boolean;
 }
 
 /**

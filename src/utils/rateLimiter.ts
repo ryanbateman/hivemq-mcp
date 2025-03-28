@@ -252,9 +252,3 @@ export const rateLimiter = new RateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 100 // 100 requests per window
 });
-
-// Export default
-export default {
-  RateLimiter,
-  rateLimiter
-};
