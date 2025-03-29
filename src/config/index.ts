@@ -45,6 +45,7 @@ export const config = {
     /** Indicates if authentication is required for server operations. */
     authRequired: false,
   }
+  // Note: mcpClient configuration is now loaded separately from mcp-config.json
 };
 
 /**
