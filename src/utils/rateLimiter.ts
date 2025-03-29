@@ -156,8 +156,8 @@ export class RateLimiter {
 
     const now = Date.now();
     
-    // Use a mutex-like approach for thread safety by safely getting and 
-    // manipulating the rate limit entry in an atomic operation
+    // Accessing and updating the limit entry within a single function scope
+    // ensures atomicity in Node.js's single-threaded event loop for Map operations.
     const limit = () => {
       // Get current entry or create a new one if it doesn't exist or is expired
       const entry = this.limits.get(limitKey);

@@ -1,4 +1,5 @@
 import { logger } from './logger.js';
+import { generateUUID } from './idGenerator.js'; // Import generateUUID
 // Removed incorrect import: import { RequestContext } from './rateLimiter.js';
 
 /**
@@ -65,7 +66,7 @@ const requestContextServiceInstance = {
   createRequestContext(
     additionalContext: Record<string, unknown> = {}
   ): RequestContext {
-    const requestId = crypto.randomUUID();
+    const requestId = generateUUID(); // Use imported generateUUID
     const timestamp = new Date().toISOString();
 
     return {
@@ -75,26 +76,7 @@ const requestContextServiceInstance = {
     };
   },
 
-  /**
-   * Generate a secure random string
-   * @param length Length of the string
-   * @param chars Character set to use
-   * @returns Random string
-   */
-  generateSecureRandomString(
-    length: number = 32,
-    chars: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  ): string {
-    const randomValues = new Uint8Array(length);
-    crypto.getRandomValues(randomValues);
-    
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars[randomValues[i] % chars.length];
-    }
-    
-    return result;
-  }
+  // generateSecureRandomString function removed as it was unused and redundant
 };
 
 // Initialize logger message

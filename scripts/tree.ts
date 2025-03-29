@@ -36,25 +36,33 @@ import path from 'path';
 // -----------------------------------
 
 /**
- * Standardized error category classification
+ * Standardized error category classification (using type alias instead of enum)
  */
-enum ErrorCategoryType {
-  CATEGORY_VALIDATION = 'VALIDATION',
-  CATEGORY_FILESYSTEM = 'FILESYSTEM',
-  CATEGORY_SYSTEM = 'SYSTEM',
-  CATEGORY_UNKNOWN = 'UNKNOWN'
-}
+type ErrorCategoryType = 
+  | 'VALIDATION'
+  | 'FILESYSTEM'
+  | 'SYSTEM'
+  | 'UNKNOWN';
+
+const ErrorCategory = {
+  VALIDATION: 'VALIDATION' as ErrorCategoryType,
+  FILESYSTEM: 'FILESYSTEM' as ErrorCategoryType,
+  SYSTEM: 'SYSTEM' as ErrorCategoryType,
+  UNKNOWN: 'UNKNOWN' as ErrorCategoryType,
+};
 
 /**
- * Error severity classification
+ * Error severity classification (using type alias instead of enum)
  */
-enum ErrorSeverityLevel {
-  SEVERITY_DEBUG = 0,
-  SEVERITY_INFO = 1,
-  SEVERITY_WARN = 2,
-  SEVERITY_ERROR = 3,
-  SEVERITY_FATAL = 4
-}
+type ErrorSeverityLevel = 0 | 1 | 2 | 3 | 4;
+
+const ErrorSeverity = {
+  DEBUG: 0 as ErrorSeverityLevel,
+  INFO: 1 as ErrorSeverityLevel,
+  WARN: 2 as ErrorSeverityLevel,
+  ERROR: 3 as ErrorSeverityLevel,
+  FATAL: 4 as ErrorSeverityLevel,
+};
 
 /**
  * Standardized error structure for consistent error handling
@@ -62,8 +70,8 @@ enum ErrorSeverityLevel {
 interface StandardizedApplicationErrorObject {
   errorMessage: string;                      // Human-readable description
   errorCode: string;                         // Machine-readable identifier
-  errorCategory: ErrorCategoryType;          // System area affected
-  errorSeverity: ErrorSeverityLevel;         // How critical the error is
+  errorCategory: ErrorCategoryType;          // System area affected (using type alias)
+  errorSeverity: ErrorSeverityLevel;         // How critical the error is (using type alias)
   errorTimestamp: string;                    // When the error occurred
   errorContext: Record<string, unknown>;     // Additional relevant data
   errorStack?: string;                       // Stack trace if available
@@ -193,8 +201,8 @@ function createFailureResult<ErrorType>(error: ErrorType): OperationResultFailur
 function createStandardizedError(
   message: string,
   code: string,
-  category: ErrorCategoryType,
-  severity: ErrorSeverityLevel,
+  category: ErrorCategoryType, // Use the type alias
+  severity: ErrorSeverityLevel, // Use the type alias
   context: Record<string, unknown> = {}
 ): StandardizedApplicationErrorObject {
   return {
@@ -224,8 +232,8 @@ function wrapExceptionAsStandardizedError(
   return {
     errorMessage,
     errorCode: 'UNEXPECTED_ERROR',
-    errorCategory: ErrorCategoryType.CATEGORY_UNKNOWN,
-    errorSeverity: ErrorSeverityLevel.SEVERITY_ERROR,
+    errorCategory: ErrorCategory.UNKNOWN, // Use the constant object
+    errorSeverity: ErrorSeverity.ERROR, // Use the constant object
     errorTimestamp: new Date().toISOString(),
     errorContext: { originalException: exception },
     errorStack

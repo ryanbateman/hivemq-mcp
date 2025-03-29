@@ -61,8 +61,22 @@ export const logLevel = config.logLevel;
  */
 export const environment = config.environment;
 
-// Initialize the logger with the configured level AFTER config is defined.
-// Type assertion is used here as LOG_LEVEL could technically be any string from env vars.
-logger.initialize(logLevel as "debug" | "info" | "warn" | "error");
+// Define valid log levels
+type LogLevel = "debug" | "info" | "warn" | "error";
+const validLogLevels: LogLevel[] = ["debug", "info", "warn", "error"];
+
+// Validate the configured log level
+let validatedLogLevel: LogLevel = "info"; // Default to 'info'
+if (validLogLevels.includes(logLevel as LogLevel)) {
+  validatedLogLevel = logLevel as LogLevel;
+} else {
+  logger.warn(`Invalid LOG_LEVEL: "${logLevel}". Defaulting to "info".`, {
+    configuredLevel: logLevel,
+    defaultLevel: validatedLogLevel
+  });
+}
+
+// Initialize the logger with the validated level AFTER config is defined.
+logger.initialize(validatedLogLevel);
 
 logger.debug("Configuration loaded successfully", { config }); // Log loaded config at debug level

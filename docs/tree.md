@@ -1,44 +1,33 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-03-21 08:39:51
+Generated on: 2025-03-29 13:32:31
 
 
 ```
 mcp-ts-template
 ├── docs
     └── tree.md
-├── logs
 ├── scripts
     ├── clean.ts
     └── tree.ts
 ├── src
     ├── config
-    │   ├── envConfig.ts
-    │   ├── index.ts
-    │   ├── mcpConfig.ts
-    │   └── README.md
+    │   └── index.ts
     ├── mcp-server
     │   ├── resources
     │   │   └── echoResource
-    │   │   │   ├── getEchoMessage.ts
+    │   │   │   ├── echoResourceLogic.ts
     │   │   │   ├── index.ts
-    │   │   │   ├── README.md
-    │   │   │   └── types.ts
+    │   │   │   └── registration.ts
     │   ├── tools
     │   │   └── echoTool
-    │   │   │   ├── echoMessage.ts
+    │   │   │   ├── echoToolLogic.ts
     │   │   │   ├── index.ts
-    │   │   │   ├── README.md
-    │   │   │   └── types.ts
-    │   ├── utils
-    │   │   ├── README.md
-    │   │   └── registrationHelper.ts
-    │   ├── README.md
+    │   │   │   └── registration.ts
     │   └── server.ts
     ├── types-global
     │   ├── errors.ts
     │   ├── mcp.ts
-    │   ├── README.md
     │   └── tool.ts
     ├── utils
     │   ├── errorHandler.ts
@@ -46,19 +35,15 @@ mcp-ts-template
     │   ├── index.ts
     │   ├── logger.ts
     │   ├── rateLimiter.ts
-    │   ├── README.md
     │   ├── requestContext.ts
-    │   ├── sanitization.ts
-    │   └── security.ts
+    │   └── sanitization.ts
     └── index.ts
 ├── .clinerules
-├── .clinerules-code
 ├── LICENSE
 ├── package-lock.json
 ├── package.json
 ├── README.md
-├── tsconfig.json
-└── tsconfig.scripts.json
+└── tsconfig.json
 
 ```
 
