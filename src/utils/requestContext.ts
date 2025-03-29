@@ -1,5 +1,17 @@
 import { logger } from './logger.js';
-import { RequestContext } from './rateLimiter.js'; // Assuming RequestContext is defined here or globally
+// Removed incorrect import: import { RequestContext } from './rateLimiter.js';
+
+/**
+ * Defines the structure for context information associated with a request or operation.
+ */
+export interface RequestContext {
+  /** Unique identifier generated for the request context instance. */
+  requestId: string;
+  /** ISO 8601 timestamp indicating when the context was created. */
+  timestamp: string;
+  /** Allows for additional, arbitrary key-value pairs for specific context needs. */
+  [key: string]: any; // Allow flexible extension
+}
 
 /**
  * Configuration interface for request context utilities

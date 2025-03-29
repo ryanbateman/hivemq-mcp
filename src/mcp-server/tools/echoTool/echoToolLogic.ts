@@ -1,10 +1,6 @@
 import { z } from 'zod'; // Import z here
 import { logger } from "../../../utils/logger.js";
-
-// Define context for logging within this tool logic module
-const toolLogicContext = {
-  module: 'EchoToolLogic'
-};
+import { RequestContext } from '../../../utils/requestContext.js'; // Import RequestContext type
 
 // --- Schema and Type Definitions (Moved from types.ts) ---
 
@@ -76,11 +72,15 @@ export interface EchoToolResponse {
  *
  * @function processEchoMessage
  * @param {EchoToolInput} params - The validated input parameters for the echo tool.
+ * @param {RequestContext} context - The request context for logging and tracing.
  * @returns {EchoToolResponse} The processed response data, including original message, formatted/repeated message, and optional timestamp.
  */
-export const processEchoMessage = (params: EchoToolInput): EchoToolResponse => {
-  const processingContext = { ...toolLogicContext, operation: 'processEchoMessage', inputMessage: params.message, mode: params.mode };
-  logger.debug("Processing echo message logic", processingContext);
+export const processEchoMessage = (
+  params: EchoToolInput,
+  context: RequestContext // Add context parameter
+): EchoToolResponse => {
+  // Use the passed context for logging
+  logger.debug("Processing echo message logic", { ...context, inputMessage: params.message, mode: params.mode });
 
   // Process the message according to the requested mode
   let formattedMessage = params.message;
@@ -116,6 +116,7 @@ export const processEchoMessage = (params: EchoToolInput): EchoToolResponse => {
     response.timestamp = new Date().toISOString();
   }
 
-  logger.debug("Echo message processed successfully", { ...processingContext, response });
+  // Use the passed context for logging the result
+  logger.debug("Echo message processed successfully", { ...context, response });
   return response;
 };

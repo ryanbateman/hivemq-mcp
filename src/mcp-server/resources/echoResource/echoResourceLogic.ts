@@ -1,10 +1,6 @@
 import { z } from 'zod';
 import { logger } from '../../../utils/logger.js';
-
-// Define context for logging within this resource logic module
-const resourceLogicContext = {
-  module: 'EchoResourceLogic'
-};
+import { RequestContext } from '../../../utils/requestContext.js'; // Import RequestContext type
 
 /**
  * Zod schema defining the expected query parameters for the echo resource.
@@ -29,12 +25,18 @@ export type EchoParams = z.infer<typeof querySchema>;
  * @function processEchoResource
  * @param {URL} uri - The full URI of the incoming resource request.
  * @param {EchoParams} params - The validated query parameters for the request.
+ * @param {RequestContext} context - The request context for logging and tracing.
  * @returns {{ message: string; timestamp: string; requestUri: string }} The data payload for the response.
  */
-export const processEchoResource = (uri: URL, params: EchoParams): { message: string; timestamp: string; requestUri: string } => {
+export const processEchoResource = (
+  uri: URL,
+  params: EchoParams,
+  context: RequestContext // Add context parameter
+): { message: string; timestamp: string; requestUri: string } => {
   // Extract message from params or use a default value
   const message = params.message || 'Hello from echo resource!';
-  logger.debug("Processing echo resource logic", { ...resourceLogicContext, message });
+  // Use the passed context for logging
+  logger.debug("Processing echo resource logic", { ...context, message });
 
   // Prepare response data including timestamp and original URI
   return {

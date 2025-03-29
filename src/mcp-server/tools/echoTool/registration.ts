@@ -4,13 +4,9 @@ import { EchoToolInputSchema, EchoToolInput, EchoToolResponse } from './echoTool
 import { BaseErrorCode, McpError } from "../../../types-global/errors.js";
 import { ErrorHandler } from "../../../utils/errorHandler.js";
 import { logger } from "../../../utils/logger.js";
+import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
 // Import the core logic function
 import { processEchoMessage } from './echoToolLogic.js';
-
-// Define context for logging within this tool module
-const toolModuleContext = {
-  module: 'EchoToolRegistration'
-};
 
 /**
  * Registers the 'echo_message' tool and its handler with the provided MCP server instance.
@@ -25,7 +21,13 @@ const toolModuleContext = {
  */
 export const registerEchoTool = async (server: McpServer): Promise<void> => {
   const toolName = "echo_message"; // The unique identifier for the tool
-  const registrationContext = { ...toolModuleContext, toolName };
+
+  // Create registration context using the service
+  const registrationContext = requestContextService.createRequestContext({
+    operation: 'RegisterEchoTool',
+    toolName: toolName,
+    module: 'EchoToolRegistration'
+  });
 
   logger.info(`Registering tool: ${toolName}`, registrationContext);
 
@@ -43,14 +45,20 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
         // The core logic executed when the tool is called.
         // Params are automatically validated against the provided schema shape by the SDK.
         async (params: EchoToolInput) => {
-          const handlerContext = { ...registrationContext, operation: 'handleRequest', params };
+          // Create handler context using the service
+          const handlerContext = requestContextService.createRequestContext({
+            parentContext: registrationContext, // Link to registration context
+            operation: 'HandleEchoToolRequest',
+            toolName: toolName,
+            params: params // Include relevant request details
+          });
           logger.debug("Handling echo tool request", handlerContext);
 
           // Wrap the handler logic in tryCatch for robust error handling
           return await ErrorHandler.tryCatch(
             async () => {
-              // Delegate the core processing logic
-              const response = processEchoMessage(params);
+              // Delegate the core processing logic, passing the context
+              const response = processEchoMessage(params, handlerContext);
               logger.debug("Echo tool processed successfully", handlerContext);
 
               // Return the response in the standard MCP tool result format

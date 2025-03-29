@@ -1,23 +1,6 @@
 import { BaseErrorCode, McpError } from '../types-global/errors.js';
 import { logger } from './logger.js';
-
-/**
- * Request context interface
- */
-export interface RequestContext {
-  /** Unique request identifier */
-  requestId: string;
-  /** Request timestamp */
-  timestamp: string;
-  /** Request path/endpoint */
-  path?: string;
-  /** HTTP method */
-  method?: string;
-  /** Request source IP */
-  ip?: string;
-  /** Custom request properties */
-  [key: string]: unknown;
-}
+import { RequestContext } from './requestContext.js'; // Import the correct RequestContext
 
 /**
  * Rate limiting configuration options

@@ -3,13 +3,9 @@ import { ListResourcesResult } from "@modelcontextprotocol/sdk/types.js"; // Imp
 import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
 import { ErrorHandler } from '../../../utils/errorHandler.js';
 import { logger } from '../../../utils/logger.js';
+import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
 // Import logic, schema, and type from the dedicated logic file
 import { processEchoResource, querySchema, EchoParams } from './echoResourceLogic.js';
-
-// Define context for logging within this resource module
-const resourceModuleContext = {
-  module: 'EchoResourceRegistration'
-};
 
 /**
  * Registers the 'echo' resource and its handlers with the provided MCP server instance.
@@ -24,7 +20,13 @@ const resourceModuleContext = {
  */
 export const registerEchoResource = async (server: McpServer): Promise<void> => {
   const resourceName = "echo-resource"; // Internal identifier for the resource
-  const registrationContext = { ...resourceModuleContext, resourceName };
+
+  // Create registration context using the service
+  const registrationContext = requestContextService.createRequestContext({
+    operation: 'RegisterEchoResource',
+    resourceName: resourceName,
+    module: 'EchoResourceRegistration'
+  });
 
   logger.info(`Registering resource: ${resourceName}`, registrationContext);
 
@@ -85,14 +87,21 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
         // --- Resource Handler ---
         // The core logic executed when a request matches the resource template.
         async (uri: URL, params: EchoParams) => {
-          const handlerContext = { ...registrationContext, operation: 'handleRequest', uri: uri.href, params };
+          // Create handler context using the service
+          const handlerContext = requestContextService.createRequestContext({
+            parentContext: registrationContext, // Link to the registration context if needed
+            operation: 'HandleEchoResourceRequest',
+            resourceName: resourceName,
+            uri: uri.href,
+            params: params // Include relevant request details
+          });
           logger.debug("Handling echo resource request", handlerContext);
 
           // Wrap the handler logic in tryCatch for robust error handling
           return await ErrorHandler.tryCatch(
             async () => {
-              // Delegate the core processing logic
-              const responseData = processEchoResource(uri, params);
+              // Delegate the core processing logic, passing the context
+              const responseData = processEchoResource(uri, params, handlerContext);
               logger.debug("Echo resource processed successfully", handlerContext);
 
               // Return the response in the standardized format expected by the MCP SDK
