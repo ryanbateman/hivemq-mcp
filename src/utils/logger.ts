@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import winston from "winston";
-// Removed config import to break cycle
+// Removed import of config to break circular dependency
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -14,93 +14,104 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
 const logsDir = path.join(projectRoot, 'logs');
 
+// --- Security Check for Logs Directory ---
+// Ensure the resolved logs directory is within the project root.
+const resolvedLogsDir = path.resolve(logsDir);
+let isLogsDirSafe = false;
+if (resolvedLogsDir.startsWith(projectRoot + path.sep) || resolvedLogsDir === projectRoot) {
+    isLogsDirSafe = true;
+} else {
+    // Use console.error for critical pre-initialization errors
+    console.error(`FATAL: Calculated logs directory "${resolvedLogsDir}" is outside the project root "${projectRoot}". Logging to files will be disabled.`);
+}
+// --- End Security Check ---
+
+
 class Logger {
   private static instance: Logger;
-  private logger: winston.Logger;
-  private isInitialized = false;
+  private logger: winston.Logger | undefined; // Logger might not be initialized immediately
+  private isInitialized: boolean = false; // Track initialization state
 
-  private constructor() {
-    // Create a basic logger initially. It will be configured later.
-    this.logger = winston.createLogger({
-      level: 'info', // Default level before initialization
-      format: winston.format.json(),
-      transports: [
-        // Removed initial Console transport.
-        // MCP clients (Ex. Claude Desktop) communicate over stdio/stdout and can show errors if
-        // unexpected console logs are present. All logging should go to files.
-      ]
-    });
-  }
+  // Private constructor for singleton pattern
+  private constructor() {}
 
-  public initialize(logLevel: LogLevel = 'info') {
+  /**
+   * Initializes the Winston logger instance with the specified log level.
+   * This method should be called once after the application configuration is loaded.
+   * @param {LogLevel} logLevel - The logging level to configure (e.g., "debug", "info"). Defaults to "info".
+   */
+  public initialize(logLevel: LogLevel = "info"): void {
     if (this.isInitialized) {
-      this.warn("Logger already initialized.");
+      // Use console.warn for pre-initialization warnings
+      console.warn("Logger already initialized.");
       return;
     }
 
-    // Ensure logs directory exists
-    try {
-      if (!fs.existsSync(logsDir)) {
-        fs.mkdirSync(logsDir, { recursive: true });
-      }
-    } catch (error) {
-      this.error("Failed to create logs directory", { 
-        error: error instanceof Error ? error.message : String(error),
-        path: logsDir 
-      });
-      // Continue without file logging if directory creation fails
-      this.isInitialized = true; // Mark as initialized to prevent re-attempts
-      return; 
+    // Ensure logs directory exists only if the path is safe
+    if (isLogsDirSafe) {
+        try {
+            if (!fs.existsSync(resolvedLogsDir)) {
+                fs.mkdirSync(resolvedLogsDir, { recursive: true });
+                console.log(`Created logs directory: ${resolvedLogsDir}`);
+            }
+        } catch (error: any) {
+            console.error(`Error ensuring logs directory exists at ${resolvedLogsDir}: ${error.message}. File logging might be affected.`);
+            isLogsDirSafe = false; // Disable file logging if creation fails
+        }
     }
 
-    // Common format for file transports
+    // Common format for all transports
     const commonFormat = winston.format.combine(
       winston.format.timestamp(),
       winston.format.errors({ stack: true }),
       winston.format.printf(({ timestamp, level, message, context, stack }) => {
         const contextStr = context ? `\n  Context: ${JSON.stringify(context, null, 2)}` : "";
         const stackStr = stack ? `\n  Stack: ${stack}` : "";
-        return `[${timestamp}] ${level}: ${message}${contextStr}${stackStr}`;
+        const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
+        return `[${timestamp}] ${level}: ${messageStr}${contextStr}${stackStr}`;
       })
     );
 
-    // Configure the logger with file transports
-    this.logger.configure({
-      level: logLevel,
-      format: winston.format.json(), // Keep default format or adjust if needed
-      transports: [
-        // Ensure no console transport is added here either, for the same reasons as above.
-        new winston.transports.File({
-          filename: path.join(logsDir, 'combined.log'),
-          format: commonFormat
-        }),
-        new winston.transports.File({
-          filename: path.join(logsDir, 'error.log'),
-          level: 'error',
-          format: commonFormat
-        }),
-        new winston.transports.File({
-          filename: path.join(logsDir, 'warn.log'),
-          level: 'warn',
-          format: commonFormat
-        }),
-        new winston.transports.File({
-          filename: path.join(logsDir, 'info.log'),
-          level: 'info',
-          format: commonFormat
-        }),
-        new winston.transports.File({
-          filename: path.join(logsDir, 'debug.log'),
-          level: 'debug',
-          format: commonFormat
+    // Define transports
+    const transports: winston.transport[] = [
+        new winston.transports.Console({
+            format: winston.format.combine(
+                winston.format.colorize(),
+                commonFormat
+            ),
+            level: logLevel
         })
-      ]
+    ];
+
+    // Add file transports only if the logs directory is safe
+    if (isLogsDirSafe) {
+        transports.push(
+            new winston.transports.File({ filename: path.join(resolvedLogsDir, 'combined.log'), format: commonFormat }),
+            new winston.transports.File({ filename: path.join(resolvedLogsDir, 'error.log'), level: 'error', format: commonFormat }),
+            new winston.transports.File({ filename: path.join(resolvedLogsDir, 'warn.log'), level: 'warn', format: commonFormat }),
+            new winston.transports.File({ filename: path.join(resolvedLogsDir, 'info.log'), level: 'info', format: commonFormat }),
+            new winston.transports.File({ filename: path.join(resolvedLogsDir, 'debug.log'), level: 'debug', format: commonFormat })
+        );
+    } else {
+        console.warn("File logging is disabled due to unsafe or inaccessible logs directory.");
+    }
+
+    // Create the Winston logger instance
+    this.logger = winston.createLogger({
+      level: logLevel,
+      transports: transports,
+      exitOnError: false
     });
-    
+
     this.isInitialized = true;
-    this.info("Logger initialized with file transports.", { level: logLevel });
+    // Use the newly initialized logger itself for the confirmation message
+    this.info(`Logger initialized with level: ${logLevel}`);
   }
 
+  /**
+   * Returns the singleton instance of the Logger.
+   * @returns {Logger} The singleton Logger instance.
+   */
   public static getInstance(): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger();
@@ -108,21 +119,41 @@ class Logger {
     return Logger.instance;
   }
 
-  public debug(message: string, context?: Record<string, unknown>) {
-    this.logger.debug(message, { context });
+  // Helper to check initialization before logging
+  private checkInitialized(methodName: string): boolean {
+    if (!this.isInitialized || !this.logger) {
+      // Use console.warn for critical logging issues if logger isn't ready
+      console.warn(`Logger.${methodName} called before initialization. Message dropped.`);
+      return false;
+    }
+    return true;
   }
 
-  public info(message: string, context?: Record<string, unknown>) {
-    this.logger.info(message, { context });
+  // Logging methods - check initialization before calling Winston logger
+  public debug(message: string, context?: Record<string, any>): void {
+    if (!this.checkInitialized('debug')) return;
+    this.logger?.debug(message, { context });
   }
 
-  public warn(message: string, context?: Record<string, unknown>) {
-    this.logger.warn(message, { context });
+  public info(message: string, context?: Record<string, any>): void {
+    if (!this.checkInitialized('info')) return;
+    this.logger?.info(message, { context });
   }
 
-  public error(message: string, context?: Record<string, unknown>) {
-    this.logger.error(message, { context });
+  public warn(message: string, context?: Record<string, any>): void {
+    if (!this.checkInitialized('warn')) return;
+    this.logger?.warn(message, { context });
+  }
+
+  public error(message: string, error?: Error | Record<string, any>, context?: Record<string, any>): void {
+      if (!this.checkInitialized('error')) return;
+      if (error instanceof Error) {
+          this.logger?.error(message, { error: { message: error.message, stack: error.stack }, context });
+      } else {
+          this.logger?.error(message, { context: { ...error, ...context } });
+      }
   }
 }
 
+// Export the singleton instance
 export const logger = Logger.getInstance();

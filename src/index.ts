@@ -1,14 +1,13 @@
 #!/usr/bin/env node
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'; // Import McpServer type
 import { config, environment } from "./config/index.js";
-import { createMcpServer } from "./mcp-server/server.js";
-import { BaseErrorCode } from "./types-global/errors.js";
-import { ErrorHandler } from "./utils/errorHandler.js";
+import { initializeAndStartServer } from "./mcp-server/server.js"; // Updated import
 import { logger } from "./utils/logger.js";
 // Import the service instance instead of the standalone function
 import { requestContextService } from "./utils/requestContext.js";
 
-// Define a type alias for the server instance for better readability
-type McpServerInstance = Awaited<ReturnType<typeof createMcpServer>>;
+// Use McpServer type directly
+type McpServerInstance = McpServer;
 
 /**
  * The main MCP server instance.
@@ -56,37 +55,31 @@ const shutdown = async (signal: string) => {
 
 /**
  * Initializes and starts the main MCP server.
- * Sets up request context, creates the server instance, and registers signal handlers
- * for graceful shutdown and error handling.
+ * Sets up request context, initializes the server instance, starts the transport,
+ * and registers signal handlers for graceful shutdown and error handling.
  */
 const start = async () => {
   // Create application-level request context using the service instance
+  const transportType = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase();
   const startupContext = requestContextService.createRequestContext({
-    operation: 'ServerStartup',
+    operation: `ServerStartup_${transportType}`, // Include transport in operation name
     appName: config.mcpServerName,
     appVersion: config.mcpServerVersion,
-    environment: environment // Use imported environment
+    environment: environment
   });
 
-  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion}...`, startupContext);
+  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion} (Transport: ${transportType})...`, startupContext);
 
   try {
-    // Create and store the main server instance
-    logger.debug("Creating main MCP server instance", startupContext);
-    // Use ErrorHandler to wrap the server creation, ensuring errors are caught and logged
-    server = await ErrorHandler.tryCatch(
-      async () => await createMcpServer(),
-      {
-        operation: 'creating main MCP server',
-        context: startupContext, // Pass the established startup context
-        errorCode: BaseErrorCode.INTERNAL_ERROR // Specify error code for failure
-      }
-    );
+    // Initialize the server instance and start the selected transport
+    logger.debug("Initializing and starting MCP server transport", startupContext);
+    // Assign the returned instance to the global 'server' variable for shutdown handling
+    server = await initializeAndStartServer();
 
-    // If tryCatch encountered an error, it would have thrown,
+    // If initializeAndStartServer failed, it would have thrown an error,
     // and execution would jump to the outer catch block.
 
-    logger.info(`${config.mcpServerName} is running and awaiting messages`, {
+    logger.info(`${config.mcpServerName} is running with ${transportType} transport`, {
       ...startupContext,
       startTime: new Date().toISOString(),
     });

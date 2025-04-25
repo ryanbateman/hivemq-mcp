@@ -1,10 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 // Import schema and types from the logic file
-import { EchoToolInputSchema, EchoToolInput, EchoToolResponse } from './echoToolLogic.js';
 import { BaseErrorCode, McpError } from "../../../types-global/errors.js";
 import { ErrorHandler } from "../../../utils/errorHandler.js";
 import { logger } from "../../../utils/logger.js";
 import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
+import { EchoToolInput, EchoToolInputSchema } from './echoToolLogic.js'; // Re-added EchoToolResponse import
 // Import the core logic function
 import { processEchoMessage } from './echoToolLogic.js';
 
@@ -62,6 +62,7 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
               logger.debug("Echo tool processed successfully", handlerContext);
 
               // Return the response in the standard MCP tool result format
+              // as required by the SDK's server.tool method signature.
               return {
                 content: [{
                   type: "text", // Content type is text

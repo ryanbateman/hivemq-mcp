@@ -5,7 +5,7 @@ import { logger } from "../utils/logger.js";
 // Import RequestContext type directly
 import { RequestContext, requestContextService } from "../utils/requestContext.js";
 // Import the config loader and server config type
-import { getMcpServerConfig, McpServerConfigEntry } from "./configLoader.js";
+import { getMcpServerConfig } from "./configLoader.js";
 // Import McpError for error handling
 import { BaseErrorCode, McpError } from "../types-global/errors.js";
 
@@ -75,7 +75,7 @@ export function createStdioClientTransport(
 
 /**
  * Retrieves and creates the appropriate client transport based on the configuration
- * for a specific MCP server. Currently only supports 'stdio'.
+ * for a specific MCP server. Supports 'stdio' and detects unimplemented 'http'.
  *
  * @param serverName - The name of the MCP server to get the transport for.
  * @param parentContext - Optional parent request context for logging.
@@ -97,27 +97,51 @@ export function getClientTransport(serverName: string, parentContext?: RequestCo
     // Load the specific server's configuration using the loader
     const serverConfig = getMcpServerConfig(serverName, context);
 
-    // Currently, we only support stdio based on the config structure
-    // In the future, this could check serverConfig.transportType or similar
-    logger.info(`Creating stdio transport for server: ${serverName}`, {
-      ...context,
-      command: serverConfig.command,
-      args: serverConfig.args,
-    });
+    // Determine the transport type from config, defaulting to 'stdio'
+    const transportType = (serverConfig.transportType || 'stdio').toLowerCase();
+    logger.info(`Selected transport type "${transportType}" for server: ${serverName}`, { ...context, transportType });
 
-    // Create the stdio transport using the loaded config
-    // Note: We pass the relevant parts of McpServerConfigEntry to StdioTransportConfig
-    const transport = createStdioClientTransport(
-      {
+    if (transportType === 'stdio') {
+      // --- Create Stdio Transport ---
+      logger.info(`Creating stdio transport for server: ${serverName}`, {
+        ...context,
         command: serverConfig.command,
         args: serverConfig.args,
-        // Pass env if it exists in serverConfig
-        // env: serverConfig.env
-      },
-      context // Pass the current context for logging within createStdioClientTransport
-    );
+      });
 
-    return transport;
+      // Create the stdio transport using the loaded config
+      // Note: We pass the relevant parts of McpServerConfigEntry to StdioTransportConfig
+      const transport = createStdioClientTransport(
+        {
+          command: serverConfig.command,
+          args: serverConfig.args,
+          // Pass env if it exists in serverConfig
+          // env: serverConfig.env
+        },
+        context // Pass the current context for logging within createStdioClientTransport
+      );
+      return transport;
+
+    } else if (transportType === 'http') {
+      // --- HTTP Transport Not Implemented ---
+      const httpErrorMessage = `Client-side HTTP transport (transportType: 'http') is not implemented for server "${serverName}". Cannot connect.`;
+      logger.error(httpErrorMessage, context);
+      throw new McpError(
+        BaseErrorCode.CONFIGURATION_ERROR,
+        httpErrorMessage,
+        context
+      );
+
+    } else {
+      // --- Unsupported Transport Type ---
+      const unsupportedErrorMessage = `Unsupported transportType "${serverConfig.transportType}" configured for server "${serverName}".`;
+      logger.error(unsupportedErrorMessage, context);
+      throw new McpError(
+        BaseErrorCode.CONFIGURATION_ERROR,
+        unsupportedErrorMessage,
+        context
+      );
+    }
 
   } catch (error) {
     // Log the error encountered during config loading or transport creation

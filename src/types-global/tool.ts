@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { McpToolResponse } from './mcp.js'; // Import McpToolResponse
+import { McpToolResult } from './mcp.js'; // Renamed McpToolResponse to McpToolResult
 import { OperationContext } from "../utils/requestContext.js"; // Updated import
 
 /**
@@ -31,7 +31,7 @@ export interface ToolRegistrationOptions<TInput extends BaseToolInput> {
 /**
  * Interface for a tool handler function
  */
-export type ToolHandler<TInput extends BaseToolInput, TResponse extends McpToolResponse> = (
+export type ToolHandler<TInput extends BaseToolInput, TResponse extends McpToolResult> = ( // Updated TResponse constraint
   input: TInput,
   context: OperationContext
 ) => Promise<TResponse>;

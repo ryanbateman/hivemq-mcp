@@ -12,6 +12,7 @@ export interface McpServerConfigEntry {
   command: string;
   args: string[];
   env?: Record<string, string>;
+  transportType?: 'stdio' | 'http'; // Added optional transportType
   // Add other potential fields like 'disabled', 'autoApprove' if needed later
 }
 
@@ -64,6 +65,10 @@ export function loadMcpClientConfig(parentContext?: RequestContext | null): McpC
       const serverConf = parsedConfig.mcpServers[serverName];
       if (!serverConf || typeof serverConf.command !== 'string' || !Array.isArray(serverConf.args)) {
         throw new Error(`Invalid configuration for server '${serverName}'. Missing or invalid 'command' or 'args'.`);
+      }
+      // Validate transportType if present
+      if (serverConf.transportType && !['stdio', 'http'].includes(serverConf.transportType)) {
+        throw new Error(`Invalid transportType "${serverConf.transportType}" for server '${serverName}'. Must be 'stdio' or 'http'.`);
       }
       // Add more validation as needed (e.g., for env)
     }

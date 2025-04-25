@@ -75,6 +75,7 @@ if (validLogLevels.includes(logLevel as LogLevel)) {
     configuredLevel: logLevel,
     defaultLevel: validatedLogLevel
   });
+  // Note: Logger methods might not work correctly before initialize() is called.
 }
 
 // Initialize the logger with the validated level AFTER config is defined.
