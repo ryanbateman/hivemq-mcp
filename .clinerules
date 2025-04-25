@@ -1,6 +1,31 @@
 # mcp-ts-template Developer Cheatsheet
 
-This cheatsheet provides quick references for common patterns and utilities within the `mcp-ts-template` codebase.
+This cheatsheet provides quick references for common patterns, utilities, and server configuration within the `mcp-ts-template` codebase.
+
+## Server Transports & Configuration
+
+The server can run using different communication transports, configured via environment variables.
+
+- **`MCP_TRANSPORT_TYPE`**: Specifies the transport.
+    - `"stdio"` (Default): Uses standard input/output for communication. Suitable for direct integration with parent processes.
+    - `"http"`: Uses Streamable HTTP Server-Sent Events (SSE) for communication. Runs an Express server.
+- **`MCP_HTTP_PORT`**: Port for the HTTP server (Default: `3000`). Used only if `MCP_TRANSPORT_TYPE=http`.
+- **`MCP_HTTP_HOST`**: Host address for the HTTP server (Default: `127.0.0.1`). Used only if `MCP_TRANSPORT_TYPE=http`.
+- **`MCP_ALLOWED_ORIGINS`**: Comma-separated list of allowed origins for HTTP requests (e.g., `http://localhost:8080,https://my-frontend.com`). Used only if `MCP_TRANSPORT_TYPE=http` and `MCP_HTTP_HOST` is not localhost.
+
+### HTTP Transport Details (`MCP_TRANSPORT_TYPE=http`)
+
+- **Endpoint**: A single endpoint `/mcp` handles all communication.
+    - `POST /mcp`: Client sends requests to the server. Requires `mcp-session-id` header for subsequent requests after initialization.
+    - `GET /mcp`: Server sends responses/notifications to the client via Server-Sent Events (SSE). Requires `mcp-session-id` header.
+    - `DELETE /mcp`: Client signals session termination. Requires `mcp-session-id` header.
+- **Session Management**: Each client connection establishes a session identified by the `mcp-session-id` header. The server maintains state per session.
+- **Security**: Basic origin checking is implemented. Configure `MCP_ALLOWED_ORIGINS` for production environments when not running on localhost.
+
+### Running the Server
+
+- **Stdio**: `npm start` or `node dist/index.js`
+- **HTTP**: `MCP_TRANSPORT_TYPE=http npm start` or `MCP_TRANSPORT_TYPE=http node dist/index.js` (optionally set `MCP_HTTP_PORT`, `MCP_HTTP_HOST`, `MCP_ALLOWED_ORIGINS`).
 
 ## Core Utilities Integration
 ```markdown
@@ -268,7 +293,7 @@ async function calculateTokens() {
 2.  **Logic (`logic.ts`)**: Define input/output types, validation schema (Zod recommended), and core processing function.
 3.  **Registration (`registration.ts`)**: Import logic, schema shape, `McpServer`, `ErrorHandler`. Use `server.tool(name, schemaShape, async handler => { ... })`. Wrap handler logic and registration in `ErrorHandler.tryCatch`.
 4.  **Index (`index.ts`)**: Export registration function.
-5.  **Server (`src/mcp-server/server.ts`)**: Import and call registration function.
+5.  **Server (`src/mcp-server/server.ts`)**: Import and call registration function within `createMcpServerInstance`.
 
 ### Adding a Resource
 
@@ -276,12 +301,12 @@ async function calculateTokens() {
 2.  **Logic (`logic.ts`)**: Define params type, query schema (if needed), and core processing function (takes `uri: URL`, `params`).
 3.  **Registration (`registration.ts`)**: Import logic, schema, `McpServer`, `ResourceTemplate`, `ErrorHandler`. Define `ResourceTemplate`. Use `server.resource(regName, template, metadata, async handler => { ... })`. Wrap handler logic and registration in `ErrorHandler.tryCatch`.
 4.  **Index (`index.ts`)**: Export registration function.
-5.  **Server (`src/mcp-server/server.ts`)**: Import and call registration function.
+5.  **Server (`src/mcp-server/server.ts`)**: Import and call registration function within `createMcpServerInstance`.
 
 ## Key File Locations
 
-- **Main Entry**: `src/index.ts` (Initializes server)
-- **Server Setup**: `src/mcp-server/server.ts` (Registers tools/resources)
+- **Main Entry**: `src/index.ts` (Initializes server, handles startup/shutdown signals)
+- **Server Setup**: `src/mcp-server/server.ts` (Handles transport logic (stdio/http), session management (http), registers tools/resources via `createMcpServerInstance`)
 - **Configuration**: `src/config/index.ts` (Loads env vars, package info)
 - **Global Types**: `src/types-global/`
 - **Utilities**: `src/utils/` (Contains core helper modules)
