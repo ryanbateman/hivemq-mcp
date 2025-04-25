@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-04-25 16:17:45
+Generated on: 2025-04-25 16:57:46
 
 
 ```
@@ -54,7 +54,6 @@ mcp-ts-template
     └── index.ts
 ├── .clinerules
 ├── .dockerignore
-├── diff.tmp
 ├── Dockerfile
 ├── LICENSE
 ├── package-lock.json
