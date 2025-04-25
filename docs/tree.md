@@ -1,18 +1,28 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-03-29 13:32:31
+Generated on: 2025-04-25 16:17:45
 
 
 ```
 mcp-ts-template
+├── backups
 ├── docs
     └── tree.md
+├── logs
 ├── scripts
     ├── clean.ts
+    ├── make-executable.ts
     └── tree.ts
 ├── src
     ├── config
     │   └── index.ts
+    ├── mcp-client
+    │   ├── client.ts
+    │   ├── configLoader.ts
+    │   ├── index.ts
+    │   ├── mcp-config.json
+    │   ├── mcp-config.json.example
+    │   └── transport.ts
     ├── mcp-server
     │   ├── resources
     │   │   └── echoResource
@@ -24,6 +34,7 @@ mcp-ts-template
     │   │   │   ├── echoToolLogic.ts
     │   │   │   ├── index.ts
     │   │   │   └── registration.ts
+    │   ├── .DS_Store
     │   └── server.ts
     ├── types-global
     │   ├── errors.ts
@@ -33,16 +44,23 @@ mcp-ts-template
     │   ├── errorHandler.ts
     │   ├── idGenerator.ts
     │   ├── index.ts
+    │   ├── jsonParser.ts
     │   ├── logger.ts
     │   ├── rateLimiter.ts
     │   ├── requestContext.ts
-    │   └── sanitization.ts
+    │   ├── sanitization.ts
+    │   └── tokenCounter.ts
+    ├── .DS_Store
     └── index.ts
 ├── .clinerules
+├── .dockerignore
+├── diff.tmp
+├── Dockerfile
 ├── LICENSE
 ├── package-lock.json
 ├── package.json
 ├── README.md
+├── repomix.config.json
 └── tsconfig.json
 
 ```
