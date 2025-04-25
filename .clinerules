@@ -19,7 +19,7 @@ const operationContext: RequestContext = /* ... get or create context ... */;
 logger.info("Processing request", operationContext);
 logger.debug("Detailed step info", { ...operationContext, data: someData });
 logger.warn("Potential issue detected", operationContext);
-logger.error("An error occurred", { ...operationContext, error: err.message });
+logger.error("An error occurred", operationContext, new Error("Something failed")); // Pass error object
 ```
 
 - **Key Files**:
@@ -28,11 +28,11 @@ logger.error("An error occurred", { ...operationContext, error: err.message });
 
 ### 2. Error Handling (`src/types-global/errors.ts`, `src/utils/errorHandler.ts`)
 
-- **Purpose**: Standardized error objects (`McpError`) and centralized handling (`ErrorHandler`).
+- **Purpose**: Standardized error objects (`McpError`) and centralized handling (`ErrorHandler`). Automatically determines error codes based on type/patterns.
 - **Usage**:
   - Use `ErrorHandler.tryCatch` to wrap operations that might fail.
   - Throw `McpError` for specific, categorized errors using `BaseErrorCode`.
-  - `ErrorHandler` automatically logs errors with context.
+  - `ErrorHandler` automatically logs errors with context and sanitized input.
 
 ```typescript
 import { ErrorHandler } from './src/utils/errorHandler.js';
@@ -62,7 +62,7 @@ async function performTask(input: any, context: RequestContext) {
 
 - **Key Files**:
   - `src/types-global/errors.ts`: Defines `McpError` and `BaseErrorCode`.
-  - `src/utils/errorHandler.ts`: Provides `ErrorHandler.tryCatch` and `handleError`.
+  - `src/utils/errorHandler.ts`: Provides `ErrorHandler.tryCatch`, `handleError`, `determineErrorCode`.
 
 ### 3. Request Context (`src/utils/requestContext.ts`)
 
@@ -100,11 +100,11 @@ function processSubTask(payload: any, parentContext: RequestContext) {
 
 ### 4. ID Generation (`src/utils/idGenerator.ts`)
 
-- **Purpose**: Generate unique, prefixed IDs for different entity types.
-- **Usage**: Configure prefixes (if needed) and use `idGenerator.generateForEntity`.
+- **Purpose**: Generate unique, prefixed IDs for different entity types and standard UUIDs.
+- **Usage**: Configure prefixes (if needed) and use `idGenerator.generateForEntity` or `generateUUID`.
 
 ```typescript
-import { idGenerator } from './src/utils/idGenerator.js';
+import { idGenerator, generateUUID } from './src/utils/idGenerator.js';
 
 // Configure prefixes (e.g., during initialization)
 idGenerator.setEntityPrefixes({
@@ -115,21 +115,23 @@ idGenerator.setEntityPrefixes({
 // Generate IDs
 const projectId = idGenerator.generateForEntity('project'); // e.g., "PROJ_A6B3J0"
 const taskId = idGenerator.generateForEntity('task', { length: 8 }); // e.g., "TASK_C9D4E1F2"
+const standardUuid = generateUUID(); // e.g., "123e4567-e89b-12d3-a456-426614174000"
 
 // Validate IDs
 const isValid = idGenerator.isValid(projectId, 'project'); // true
+const entityType = idGenerator.getEntityType(taskId); // "task"
 ```
 
 - **Key Files**:
-  - `src/utils/idGenerator.ts`: `IdGenerator` class and default `idGenerator` instance.
+  - `src/utils/idGenerator.ts`: `IdGenerator` class, default `idGenerator` instance, and `generateUUID` function.
 
 ### 5. Sanitization (`src/utils/sanitization.ts`)
 
-- **Purpose**: Clean and validate input data (HTML, paths, numbers, URLs, JSON) to prevent security issues.
-- **Usage**: Import the singleton `sanitization` instance.
+- **Purpose**: Clean and validate input data (HTML, paths, numbers, URLs, JSON) to prevent security issues. Also sanitizes objects for logging.
+- **Usage**: Import the singleton `sanitization` instance or the `sanitizeInputForLogging` helper.
 
 ```typescript
-import { sanitization } from './src/utils/sanitization.js';
+import { sanitization, sanitizeInputForLogging } from './src/utils/sanitization.js';
 
 const unsafeHtml = '<script>alert("xss")</script><p>Safe content</p>';
 const safeHtml = sanitization.sanitizeHtml(unsafeHtml); // "<p>Safe content</p>"
@@ -144,14 +146,119 @@ try {
 const userInput = " 123.45 ";
 const num = sanitization.sanitizeNumber(userInput, 0, 1000); // 123.45
 
+const unsafeUrl = 'javascript:alert("bad")';
+try {
+    const safeUrl = sanitization.sanitizeUrl(unsafeUrl);
+} catch (error) {
+    // Handle McpError (BaseErrorCode.VALIDATION_ERROR)
+}
+
 // Sanitize objects for logging (removes sensitive fields)
 const sensitiveData = { user: 'admin', password: 'pwd', token: 'abc' };
-const safeLogData = sanitization.sanitizeForLogging(sensitiveData);
+const safeLogData = sanitizeInputForLogging(sensitiveData);
 // safeLogData = { user: 'admin', password: '[REDACTED]', token: '[REDACTED]' }
 ```
 
 - **Key Files**:
-  - `src/utils/sanitization.ts`: `Sanitization` class and `sanitization` instance.
+  - `src/utils/sanitization.ts`: `Sanitization` class, `sanitization` instance, and `sanitizeInputForLogging` function.
+
+### 6. JSON Parsing (`src/utils/jsonParser.ts`)
+
+- **Purpose**: Parse potentially partial/incomplete JSON strings. Handles optional `<think>` blocks at the beginning of the input, logging their content.
+- **Usage**: Import the singleton `jsonParser` instance. Use `Allow` constants for partial parsing options.
+
+```typescript
+import { jsonParser, Allow } from './src/utils/jsonParser.js';
+import { RequestContext } from './src/utils/requestContext.js';
+
+const partialJson = '<think>Parsing JSON...</think>{"key": "value", "incomplete": ';
+const context: RequestContext = /* ... */;
+
+try {
+  // Parse allowing incomplete structures
+  const parsed = jsonParser.parse(partialJson, Allow.ALL, context);
+  // parsed = { key: 'value', incomplete: undefined }
+
+  // Parse requiring complete JSON (after <think> block)
+  const completeJson = '<think>Thinking...</think>{"complete": true}';
+  const fullParsed = jsonParser.parse(completeJson, Allow.NONE, context);
+  // fullParsed = { complete: true }
+
+} catch (error) {
+  // Handle McpError (BaseErrorCode.VALIDATION_ERROR)
+}
+```
+
+- **Key Files**:
+  - `src/utils/jsonParser.ts`: `JsonParser` class, `jsonParser` instance, and `Allow` enum.
+
+### 7. Rate Limiting (`src/utils/rateLimiter.ts`)
+
+- **Purpose**: Implement rate limiting based on a key (e.g., user ID, IP address).
+- **Usage**: Import the singleton `rateLimiter` instance. Use `check` to enforce limits.
+
+```typescript
+import { rateLimiter } from './src/utils/rateLimiter.js';
+import { RequestContext } from './src/utils/requestContext.js';
+
+const userId = 'user123';
+const context: RequestContext = /* ... */;
+
+try {
+  // Check rate limit for the user
+  rateLimiter.check(userId, context);
+
+  // ... proceed with the operation ...
+
+} catch (error) {
+  // Handle McpError (BaseErrorCode.RATE_LIMITED)
+  if (error instanceof McpError && error.code === BaseErrorCode.RATE_LIMITED) {
+    console.warn(`Rate limit exceeded for ${userId}. Wait ${error.details?.waitTime}s.`);
+  } else {
+    // Handle other errors
+  }
+}
+
+// Optionally configure the limiter (e.g., during initialization)
+rateLimiter.configure({ windowMs: 60 * 1000, maxRequests: 10 });
+```
+
+- **Key Files**:
+  - `src/utils/rateLimiter.ts`: `RateLimiter` class and `rateLimiter` instance.
+
+### 8. Token Counting (`src/utils/tokenCounter.ts`)
+
+- **Purpose**: Estimate the number of tokens for text or chat messages using the `tiktoken` library (specifically with the `gpt-4o` model tokenizer).
+- **Usage**: Import `countTokens` for plain text or `countChatTokens` for chat message arrays.
+
+```typescript
+import { countTokens, countChatTokens } from './src/utils/tokenCounter.js';
+import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { RequestContext } from './src/utils/requestContext.js';
+
+const text = "This is some sample text.";
+const context: RequestContext = /* ... */;
+
+async function calculateTokens() {
+  try {
+    const textTokens = await countTokens(text, context);
+    console.log(`Text tokens: ${textTokens}`);
+
+    const messages: ChatCompletionMessageParam[] = [
+      { role: 'system', content: 'You are helpful.' },
+      { role: 'user', content: 'Hello!' }
+    ];
+    const chatTokens = await countChatTokens(messages, context);
+    console.log(`Chat tokens: ${chatTokens}`);
+
+  } catch (error) {
+    // Handle McpError (BaseErrorCode.INTERNAL_ERROR if tiktoken fails)
+  }
+}
+```
+
+- **Key Files**:
+  - `src/utils/tokenCounter.ts`: Provides `countTokens` and `countChatTokens` functions.
 
 ## Adding New Features
 
@@ -177,10 +284,9 @@ const safeLogData = sanitization.sanitizeForLogging(sensitiveData);
 - **Server Setup**: `src/mcp-server/server.ts` (Registers tools/resources)
 - **Configuration**: `src/config/index.ts` (Loads env vars, package info)
 - **Global Types**: `src/types-global/`
-- **Utilities**: `src/utils/`
+- **Utilities**: `src/utils/` (Contains core helper modules)
 - **Tools**: `src/mcp-server/tools/`
 - **Resources**: `src/mcp-server/resources/`
 - **Client Config**: `src/mcp-client/mcp-config.json` (Example, used for client connections)
 
 Remember to keep this cheatsheet updated as the codebase evolves!
-```

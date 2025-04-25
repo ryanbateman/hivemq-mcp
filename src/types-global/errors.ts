@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { McpContent, McpToolResponse } from "./mcp.js";
 
 /**
  * Defines a set of standardized error codes for common issues within MCP servers or tools.
@@ -54,28 +53,7 @@ export class McpError extends Error {
     Object.setPrototypeOf(this, McpError.prototype);
   }
 
-  /**
-   * Converts the McpError instance into a standard MCP tool response format.
-   * This is useful for returning structured errors from tool handlers.
-   * @returns {McpToolResponse} An object representing the error, suitable for an MCP tool response.
-   */
-  toResponse(): McpToolResponse {
-    // Construct the text content for the error response
-    const errorText = `Error [${this.code}]: ${this.message}${
-      this.details ? `\nDetails: ${JSON.stringify(this.details, null, 2)}` : ''
-    }`;
-
-    const content: McpContent = {
-      type: "text",
-      text: errorText
-    };
-
-    // Return the structured error response
-    return {
-      content: [content],
-      isError: true // Mark this response as an error
-    };
-  }
+  // Removed toResponse() method. The SDK should handle formatting errors into JSON-RPC responses.
 }
 
 /**
