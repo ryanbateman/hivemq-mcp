@@ -6,14 +6,11 @@ import { logger } from "./utils/logger.js";
 // Import the service instance instead of the standalone function
 import { requestContextService } from "./utils/requestContext.js";
 
-// Use McpServer type directly
-type McpServerInstance = McpServer;
-
 /**
  * The main MCP server instance.
- * @type {McpServerInstance | undefined}
+ * @type {McpServer | undefined}
  */
-let server: McpServerInstance | undefined;
+let server: McpServer | undefined;
 
 /**
  * Gracefully shuts down the main MCP server.
@@ -73,8 +70,22 @@ const start = async () => {
   try {
     // Initialize the server instance and start the selected transport
     logger.debug("Initializing and starting MCP server transport", startupContext);
-    // Assign the returned instance to the global 'server' variable for shutdown handling
-    server = await initializeAndStartServer();
+
+    // Start the server transport. For stdio, this returns the server instance.
+    // For http, it sets up the listener and returns void (or potentially the http.Server).
+    // We only need to store the instance for stdio shutdown.
+    const potentialServerInstance = await initializeAndStartServer();
+    if (transportType === 'stdio' && potentialServerInstance instanceof McpServer) {
+        server = potentialServerInstance; // Store only for stdio
+    } else {
+        // For HTTP, server instances are managed per-session in server.ts
+        // The main http server listener keeps the process alive.
+        // Shutdown for HTTP needs to handle closing the main http server.
+        // We might need to return the httpServer from initializeAndStartServer if
+        // we want to close it explicitly here during shutdown.
+        // For now, we don't store anything globally for HTTP transport.
+    }
+
 
     // If initializeAndStartServer failed, it would have thrown an error,
     // and execution would jump to the outer catch block.
