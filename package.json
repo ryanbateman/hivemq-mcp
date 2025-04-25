@@ -1,6 +1,6 @@
 {
   "name": "mcp-ts-template",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A beginner-friendly foundation for building Model Context Protocol (MCP) servers (and in the future also clients) with TypeScript. This template provides a comprehensive starting point with production-ready utilities, well-structured code, and working examples for building an MCP server. Copy this repo to kickstart your own MCP server and set your **vibe code** session up for success!",
   "main": "dist/index.js",
   "files": [
