@@ -1,11 +1,12 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { ClientCapabilities } from "@modelcontextprotocol/sdk/types.js"; // Import ClientCapabilities type
 import { BaseErrorCode, McpError } from "../types-global/errors.js";
 import { ErrorHandler } from "../utils/errorHandler.js";
 import { logger } from "../utils/logger.js";
 import { RequestContext, requestContextService } from "../utils/requestContext.js";
 import { getClientTransport } from "./transport.js";
-// No need to load the full config here for client creation itself
-// import { loadMcpClientConfig } from "./configLoader.js";
+// Import config loader for early validation
+import { getMcpServerConfig } from "./configLoader.js";
 
 // Define a type for the connected client instance
 export type ConnectedMcpClient = Client; // Alias for clarity
@@ -16,6 +17,7 @@ const connectedClients: Map<string, ConnectedMcpClient> = new Map();
 /**
  * Creates, connects, and returns an MCP client instance for a specified server.
  * If a client for the server is already connected, it returns the existing instance.
+ * Validates server configuration before attempting connection.
  *
  * @param serverName - The name of the MCP server to connect to (must exist in mcp-config.json).
  * @param parentContext - Optional parent request context for logging.
@@ -42,56 +44,90 @@ export async function connectMcpClient(
 
   return await ErrorHandler.tryCatch(
     async () => {
-      // 1. Define Client Identity & Capabilities
-      // TODO: Load this from a dedicated client section in config later if needed
+      // 1. Validate server configuration exists *before* getting transport
+      // This call will throw McpError if the serverName is not found in the config.
+      logger.debug(`Validating configuration for server: ${serverName}`, operationContext);
+      getMcpServerConfig(serverName, operationContext); // Throws if not found
+      logger.debug(`Configuration validated for server: ${serverName}`, operationContext);
+
+      // 2. Define Client Identity & Full Capabilities (as per 2025-03-26 spec)
+      // TODO: Load client identity from config later if needed
       const clientIdentity = { name: `mcp-ts-template-client-for-${serverName}`, version: '1.0.0' };
-      // Announce basic capabilities; the server will confirm what it supports.
-      const clientCapabilities = { resources: {}, tools: {}, prompts: {} };
 
-      // 2. Get the specific transport for the target server
-      const transport = getClientTransport(serverName, operationContext); // This uses getMcpServerConfig internally
+      // Declare full client capabilities structure
+      const clientCapabilities: ClientCapabilities = {
+        // Resources: Declare support for listing, reading, and potentially subscriptions/list changes
+        resources: {
+          list: true, // Can list resources
+          read: true, // Can read resource content
+          templates: { list: true }, // Can list resource templates
+          // subscribe: true, // Uncomment if client supports subscribing to resource updates
+          // listChanged: true, // Uncomment if client handles resource list change notifications
+        },
+        // Tools: Declare support for listing and calling tools
+        tools: {
+          list: true, // Can list tools
+          call: true, // Can call tools
+          // listChanged: true, // Uncomment if client handles tool list change notifications
+        },
+        // Prompts: Declare support for listing and getting prompts
+        prompts: {
+          list: true, // Can list prompts
+          get: true, // Can get prompt content
+          // listChanged: true, // Uncomment if client handles prompt list change notifications
+        },
+        // Logging: Declare support for receiving log messages and setting levels
+        logging: {
+          setLevel: true, // Can set the server's log level
+        },
+        // Roots: Declare support for handling filesystem roots
+        roots: {
+          listChanged: true, // Can handle notifications when roots change
+        },
+        // Add other capabilities like 'sampling', 'completions', 'configuration' if supported
+        // sampling: { createMessage: true },
+        // completions: { complete: true },
+        // configuration: { get: true, set: true },
+      };
+      logger.debug("Client capabilities defined", { ...operationContext, capabilities: clientCapabilities });
 
-      // 3. Create the Client instance using the high-level SDK constructor
+
+      // 3. Get the specific transport for the target server
+      // This now happens *after* config validation
+      const transport = getClientTransport(serverName, operationContext);
+
+      // 4. Create the Client instance using the high-level SDK constructor
       logger.debug(`Creating MCP Client instance for ${serverName}`, operationContext);
       const client = new Client(clientIdentity, { capabilities: clientCapabilities });
 
-      // 4. Setup error handling for the client/transport
-      // The 'onerror' handler on the Client instance receives standard Error objects
-      // (which might be instances of the SDK's McpError, which extends Error)
-      client.onerror = (clientError: Error) => { // Expect a standard Error
-        // Check if it has McpError-like properties for more detailed logging
+      // 5. Setup error handling for the client/transport
+      client.onerror = (clientError: Error) => {
         const errorCode = (clientError as any).code;
         const errorData = (clientError as any).data;
         logger.error(`MCP Client error for server ${serverName}`, {
-          ...operationContext, // Include operation context
+          ...operationContext,
           error: clientError.message,
-          code: errorCode, // Log code if it exists
-          data: errorData, // Log data if it exists
-          stack: clientError.stack, // Include stack if available
+          code: errorCode,
+          data: errorData,
+          stack: clientError.stack,
         });
-        // Potentially trigger disconnect/cleanup logic here
-        // Pass the original Error object
         disconnectMcpClient(serverName, operationContext, clientError);
       };
-      // Transport errors are typically generic Errors
       transport.onerror = (transportError: Error) => {
          logger.error(`MCP Transport error for server ${serverName}`, {
            ...operationContext,
-           error: transportError.message, // Use transportError
-           stack: transportError.stack,   // Use transportError
+           error: transportError.message,
+           stack: transportError.stack,
          });
-         // Transport errors often mean the connection is dead
-         // Pass the original Error object
          disconnectMcpClient(serverName, operationContext, transportError);
       };
        transport.onclose = () => {
          logger.info(`MCP Transport closed for server ${serverName}`, operationContext);
-         // Ensure client is marked as disconnected
-         disconnectMcpClient(serverName, operationContext); // Attempt cleanup on close
+         disconnectMcpClient(serverName, operationContext);
        };
 
 
-      // 5. Connect the client to the transport
+      // 6. Connect the client to the transport
       logger.info(`Connecting client to transport for ${serverName}...`, operationContext);
       await client.connect(transport);
       logger.info(`Successfully connected to MCP server: ${serverName}`, operationContext);
@@ -104,8 +140,8 @@ export async function connectMcpClient(
     {
       operation: `connecting to MCP server ${serverName}`,
       context: operationContext,
-      errorCode: BaseErrorCode.INTERNAL_ERROR, // Or a more specific connection error code
-      rethrow: true, // Ensure errors during connection are propagated
+      errorCode: BaseErrorCode.INTERNAL_ERROR, // Default, specific errors thrown by getMcpServerConfig or connect
+      rethrow: true,
     }
   );
 }
@@ -146,9 +182,12 @@ export async function disconnectMcpClient(
         } finally {
             connectedClients.delete(serverName); // Remove from cache regardless of close success/failure
             logger.debug(`Removed client ${serverName} from connection cache.`, context);
+         }
+     } else {
+        // Only log warning if it wasn't triggered by an error (to avoid duplicate logs on error disconnect)
+        if (!error) {
+            logger.warning(`Client for server ${serverName} not found in cache or already disconnected.`, context);
         }
-    } else {
-        logger.warn(`Client for server ${serverName} not found in cache or already disconnected.`, context);
         // Ensure it's removed if somehow still present but not retrieved correctly
         if (connectedClients.has(serverName)) {
              connectedClients.delete(serverName);
@@ -169,7 +208,9 @@ export async function disconnectAllMcpClients(parentContext?: RequestContext | n
     });
     logger.info("Disconnecting all MCP clients...", context);
     const disconnectionPromises: Promise<void>[] = [];
-    for (const serverName of connectedClients.keys()) {
+    // Create a copy of keys to avoid issues while iterating and deleting
+    const serverNames = Array.from(connectedClients.keys());
+    for (const serverName of serverNames) {
         disconnectionPromises.push(disconnectMcpClient(serverName, context));
     }
     try {

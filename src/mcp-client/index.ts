@@ -17,5 +17,5 @@ export {
   getMcpServerConfig
 } from './configLoader.js';
 
-// Optionally, re-export transport functions if direct access is needed (less common)
-// export { getClientTransport, createStdioClientTransport } from './transport.js';
+// Re-export transport functions, especially getClientTransport which now handles multiple types
+export { getClientTransport, createStdioClientTransport } from './transport.js';

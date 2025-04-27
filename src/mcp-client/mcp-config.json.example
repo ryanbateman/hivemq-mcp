@@ -13,16 +13,17 @@
         "NODE_ENV": "development",
         "GIT_USERNAME": "example-user",
         "GIT_EMAIL": "user@example.com"
-      }
-        },
-        "github-mcp-server": {
+      },
+      "transportType": "stdio" // Explicitly set transport type
+    },
+    "github-mcp-server": {
       "command": "node",
       "args": [
         "/path/to/github-mcp-server/build/index.js"
       ],
       "env": {
         "GITHUB_TOKEN": "your-github-token"
-      }
-      }
+      },
+      "transportType": "stdio" // Explicitly set transport type
     }
 }
