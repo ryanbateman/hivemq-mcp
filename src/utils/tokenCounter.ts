@@ -88,10 +88,10 @@ export async function countChatTokens(
             for (const part of message.content) {
               if (part.type === 'text') {
                 num_tokens += encoding.encode(part.text).length;
-              } else {
+               } else {
                 // Add placeholder token count for non-text parts (e.g., images) if needed
                 // This requires specific model knowledge (e.g., OpenAI vision model token costs)
-                logger.warn(`Non-text content part found (type: ${part.type}), token count contribution ignored.`, context);
+                logger.warning(`Non-text content part found (type: ${part.type}), token count contribution ignored.`, context);
                 // num_tokens += IMAGE_TOKEN_COST; // Placeholder
               }
             }

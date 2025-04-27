@@ -34,7 +34,7 @@ const shutdown = async (signal: string) => {
       await server.close();
       logger.info("Main MCP server closed successfully", shutdownContext);
     } else {
-      logger.warn("Server instance not found during shutdown.", shutdownContext);
+      logger.warning("Server instance not found during shutdown.", shutdownContext);
     }
 
     logger.info("Graceful shutdown completed successfully", shutdownContext);

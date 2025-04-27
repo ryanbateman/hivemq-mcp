@@ -161,12 +161,12 @@ export class Sanitization {
         // Validate and sanitize URL
         if (!validator.isURL(input, { 
           protocols: ['http', 'https'],
-          require_protocol: true
-        })) {
-          // Return empty string for invalid URLs in this context
-          logger.warn('Invalid URL detected during string sanitization', { input });
-          return ''; 
-        }
+           require_protocol: true
+         })) {
+           // Return empty string for invalid URLs in this context
+           logger.warning('Invalid URL detected during string sanitization', { input });
+           return '';
+         }
         return validator.trim(input);
         
       case 'javascript':
@@ -277,11 +277,11 @@ export class Sanitization {
          }
       }
       
-      return normalized;
-    } catch (error) {
-      logger.warn('Path sanitization error', { 
-        input, 
-        error: error instanceof Error ? error.message : String(error) 
+       return normalized;
+     } catch (error) {
+      logger.warning('Path sanitization error', {
+        input,
+        error: error instanceof Error ? error.message : String(error)
       });
       
       throw new McpError(
