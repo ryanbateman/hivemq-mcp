@@ -115,7 +115,8 @@ Core Components:
 - **Configuration System**: Environment-aware configuration with validation
 - **Logging System**: Structured logging with sensitive data redaction
 - **Error Handling**: Centralized error processing with consistent patterns
-- **MCP Server**: Protocol implementation for tools and resources
+- **MCP Server**: Protocol implementation supporting both `stdio` and `http` transports.
+- **HTTP Transport**: Express-based server using Server-Sent Events (SSE) for streaming, session management, and configurable CORS. Includes port conflict retry logic.
 - **Validation Layer**: Input validation and sanitization using `validator` and `sanitize-html`.
 - **Utilities**: Reusable utility functions for common operations
 
@@ -200,9 +201,32 @@ Add to your MCP client settings:
     }
   }
 }
-```
+   ```
 
-### Configuration System
+### Configuration
+
+#### Environment Variables
+
+The server behavior can be configured using the following environment variables:
+
+| Variable                | Description                                                                                                | Default       |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
+| `MCP_TRANSPORT_TYPE`    | Specifies the transport mechanism. Options: `stdio`, `http`.                                               | `stdio`       |
+| `MCP_HTTP_PORT`         | The port number for the HTTP server to listen on.                                                          | `3000`        |
+| `MCP_HTTP_HOST`         | The host address for the HTTP server to bind to.                                                           | `127.0.0.1`   |
+| `MCP_ALLOWED_ORIGINS`   | Comma-separated list of allowed origins for CORS requests when using the `http` transport.                 | (none)        |
+| `MCP_SERVER_NAME`       | Name of the MCP server (used in initialization).                                                           | `mcp-ts-template` |
+| `MCP_SERVER_VERSION`    | Version of the MCP server (used in initialization).                                                        | (from package.json) |
+| `LOG_LEVEL`             | Logging level (e.g., `info`, `debug`, `warn`, `error`).                                                    | `info`        |
+| `LOG_REDACT_PATTERNS`   | Comma-separated list of regex patterns for redacting sensitive data in logs.                               | (predefined)  |
+| `LOG_FILE_PATH`         | Path to the log file. If not set, logs only to console.                                                    | (none)        |
+| `LOG_MAX_FILE_SIZE_MB`  | Maximum size of a single log file before rotation (in MB).                                                 | `10`          |
+| `LOG_MAX_FILES`         | Maximum number of rotated log files to keep.                                                               | `5`           |
+| `LOG_ZIP_ARCHIVES`      | Whether to compress rotated log files (`true`/`false`).                                                    | `true`        |
+
+**Note on HTTP Port Retries:** If the specified `MCP_HTTP_PORT` is in use, the server will attempt to bind to the next available port, retrying up to 15 times (e.g., if 3000 is busy, it tries 3001, 3002, ..., up to 3015).
+
+#### Configuration System
 
 The configuration system provides a flexible way to manage settings:
 
@@ -246,18 +270,20 @@ See the [Echo Resource implementation](src/mcp-server/resources/echoResource/) f
 
 1.  **Create Directory**: Create a new directory for your tool under `src/mcp-server/tools/` (e.g., `src/mcp-server/tools/myNewTool/`).
 2.  **Define Logic & Schema**: In a `myNewToolLogic.ts` file:
-    - Define TypeScript interfaces for the tool's input and output.
-    - Define the input validation schema (e.g., using Zod, although this template currently uses `validator` and manual checks).
-    - Implement the core logic function that takes validated input and returns the output.
+    - Define the input validation schema using **Zod**. This schema serves as the single source of truth for input structure and types.
+    - Use `z.infer<typeof YourZodSchema>` to automatically derive the TypeScript input type from the Zod schema.
+    - Define a TypeScript interface for the tool's output.
+    - Implement the core logic function that takes the validated input (typed using the inferred type) and returns the output.
 3.  **Implement Registration**: In a `registration.ts` file:
-    - Import necessary types, the schema shape, the logic function, `McpServer`, `ErrorHandler`, and `logger`.
+    - Import necessary types, the Zod schema, the logic function, `McpServer`, `ErrorHandler`, and `logger`.
     - Create an `async` function (e.g., `registerMyNewTool`) that accepts the `McpServer` instance.
     - Inside this function, use `ErrorHandler.tryCatch` to wrap the `server.tool()` call.
-    - Call `server.tool()` with:
+    - Call `server.tool()` using the 4-argument overload (available in SDK v1.10.2+):
       - The tool name (string).
-      - The input schema's shape (e.g., `MyToolInputSchema.shape`).
+      - The tool description (string).
+      - The **shape** of the Zod input schema (e.g., `MyToolInputSchema.shape`). The SDK uses this for validation.
       - An `async` handler function that:
-        - Takes the validated `params`.
+        - Takes the validated `params` (which will match the inferred TypeScript type).
         - Uses `ErrorHandler.tryCatch` to wrap the call to your core logic function.
         - Formats the result according to the MCP specification (e.g., `{ content: [{ type: "text", text: JSON.stringify(result) }] }`).
         - Includes appropriate logging.
@@ -275,20 +301,21 @@ See the [Echo Resource implementation](src/mcp-server/resources/echoResource/) f
 
 1.  **Create Directory**: Create a new directory for your resource under `src/mcp-server/resources/` (e.g., `src/mcp-server/resources/myNewResource/`).
 2.  **Define Logic & Schema**: In a `myNewResourceLogic.ts` file:
-    - Define TypeScript interfaces for any parameters (path or query).
-    - Define the query validation schema if needed (e.g., using Zod, although this template currently uses `validator` and manual checks).
-    - Implement the core logic function that takes the `uri` (URL object) and validated `params` and returns the resource data.
+    - Define a **Zod** schema for any expected query parameters.
+    - Use `z.infer<typeof YourQuerySchema>` to derive the TypeScript type for query parameters.
+    - Define TypeScript interfaces for path parameters if needed (extracted from the URI path).
+    - Implement the core logic function that takes the `uri` (URL object) and validated `params` (query parameters) and returns the resource data.
 3.  **Implement Registration**: In a `registration.ts` file:
-    - Import necessary types, schemas, the logic function, `McpServer`, `ResourceTemplate`, `ErrorHandler`, and `logger`.
+    - Import necessary types, the Zod query schema, the logic function, `McpServer`, `ResourceTemplate`, `ErrorHandler`, and `logger`.
     - Create an `async` function (e.g., `registerMyNewResource`) that accepts the `McpServer` instance.
     - Inside this function, use `ErrorHandler.tryCatch` to wrap the registration process.
     - Define a `ResourceTemplate` with the URI pattern and any `list` or `complete` operations.
     - Call `server.resource()` with:
       - A unique resource registration name (string).
       - The `ResourceTemplate` instance.
-      - Resource metadata (name, description, mimeType, querySchema, examples).
+      - Resource metadata (name, description, mimeType, querySchema (the Zod schema itself), examples).
       - An `async` handler function that:
-        - Takes the `uri` (URL) and validated `params`.
+        - Takes the `uri` (URL) and validated `params` (query parameters matching the inferred type).
         - Uses `ErrorHandler.tryCatch` to wrap the call to your core logic function.
         - Formats the result according to the MCP specification (e.g., `{ contents: [{ uri: uri.href, text: JSON.stringify(result), mimeType: "application/json" }] }`).
         - Includes appropriate logging.
@@ -306,7 +333,7 @@ Example `registration.ts` structure
 
 ## Future Plans
 
-- **MCP Client Implementation**: Support for creating MCP clients that connect to various AI models
+- **MCP Client Implementation**: Continue development of MCP client capabilities, including enhanced configuration and transport management.
 
 ## License
 
