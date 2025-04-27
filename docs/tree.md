@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-04-25 16:57:46
+Generated on: 2025-04-27 17:15:13
 
 
 ```
@@ -55,6 +55,7 @@ mcp-ts-template
 ├── .clinerules
 ├── .dockerignore
 ├── Dockerfile
+├── git_diff.tmp
 ├── LICENSE
 ├── package-lock.json
 ├── package.json
