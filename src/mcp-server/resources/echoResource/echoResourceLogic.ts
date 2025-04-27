@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { logger } from '../../../utils/logger.js';
-import { RequestContext } from '../../../utils/requestContext.js'; // Import RequestContext type
+import type { RequestContext } from '../../../utils/requestContext.js'; // Import RequestContext type
 
 /**
  * Zod schema defining the expected query parameters for the echo resource.
@@ -26,17 +26,18 @@ export type EchoParams = z.infer<typeof querySchema>;
  * @param {URL} uri - The full URI of the incoming resource request.
  * @param {EchoParams} params - The validated query parameters for the request.
  * @param {RequestContext} context - The request context for logging and tracing.
- * @returns {{ message: string; timestamp: string; requestUri: string }} The data payload for the response.
+ * @returns {EchoResourceResponse} The data payload for the response (will be JSON-stringified by the handler).
  */
 export const processEchoResource = (
   uri: URL,
   params: EchoParams,
   context: RequestContext // Add context parameter
 ): { message: string; timestamp: string; requestUri: string } => {
-  // Extract message from params or use a default value
-  const message = params.message || 'Hello from echo resource!';
+  // Extract message from params, fallback to path variable (uri.host), then to default
+  const rawMessage = params.message ?? uri.host;
+  const message = rawMessage || 'Hello from echo resource!';
   // Use the passed context for logging
-  logger.debug("Processing echo resource logic", { ...context, message });
+  logger.debug("Processing echo resource logic", { ...context, message, rawMessage });
 
   // Prepare response data including timestamp and original URI
   return {

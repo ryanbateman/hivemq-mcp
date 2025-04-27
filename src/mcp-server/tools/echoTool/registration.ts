@@ -4,7 +4,8 @@ import { BaseErrorCode, McpError } from "../../../types-global/errors.js";
 import { ErrorHandler } from "../../../utils/errorHandler.js";
 import { logger } from "../../../utils/logger.js";
 import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
-import { EchoToolInput, EchoToolInputSchema } from './echoToolLogic.js'; // Re-added EchoToolResponse import
+import type { EchoToolInput } from './echoToolLogic.js'; // Use type import
+import { EchoToolInputSchema } from './echoToolLogic.js'; // Schema needed for shape extraction
 // Import the core logic function
 import { processEchoMessage } from './echoToolLogic.js';
 
@@ -21,6 +22,7 @@ import { processEchoMessage } from './echoToolLogic.js';
  */
 export const registerEchoTool = async (server: McpServer): Promise<void> => {
   const toolName = "echo_message"; // The unique identifier for the tool
+  const toolDescription = "Echoes a message back with optional formatting and repetition."; // Tool description
 
   // Create registration context using the service
   const registrationContext = requestContextService.createRequestContext({
@@ -34,17 +36,17 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
   // Use ErrorHandler to wrap the entire registration process
   await ErrorHandler.tryCatch(
     async () => {
-      // Register the tool using server.tool()
+      // Register the tool using the 4-argument server.tool() overload (SDK v1.10.2+)
       server.tool(
         toolName,
+        toolDescription, // Argument 2: Tool Description
         // --- Tool Input Schema (Raw Shape) ---
         // Pass the raw shape of the Zod schema. The SDK uses this for validation.
-        // Descriptions from the schema's .describe() calls are likely used for metadata.
-        EchoToolInputSchema.shape,
+        EchoToolInputSchema.shape, // Argument 3: Schema Shape
         // --- Tool Handler ---
         // The core logic executed when the tool is called.
         // Params are automatically validated against the provided schema shape by the SDK.
-        async (params: EchoToolInput) => {
+        async (params: EchoToolInput) => { // Argument 4: Handler
           // Create handler context using the service
           const handlerContext = requestContextService.createRequestContext({
             parentContext: registrationContext, // Link to registration context
@@ -68,7 +70,8 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
                   type: "text", // Content type is text
                   // The actual content is a JSON string representing the EchoToolResponse
                   text: JSON.stringify(response, null, 2)
-                }]
+                }],
+                isError: false // Explicitly set isError to false for successful execution
               };
             },
             {

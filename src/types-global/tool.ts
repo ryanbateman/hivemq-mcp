@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { McpToolResult } from './mcp.js'; // Renamed McpToolResponse to McpToolResult
 import { OperationContext } from "../utils/requestContext.js"; // Updated import
+import { McpToolResult } from './mcp.js'; // Renamed McpToolResponse to McpToolResult
 
 /**
  * Base interface for tool input parameters

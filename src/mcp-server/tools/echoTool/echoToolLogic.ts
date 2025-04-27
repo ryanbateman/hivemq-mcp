@@ -95,8 +95,8 @@ export const processEchoMessage = (
   }
 
   // Repeat the message the specified number of times, ensuring it's within bounds
-  // Use nullish coalescing for default repeat value from schema
-  const safeRepeatCount = Math.min(params.repeat ?? 1, 10);
+  // Default repeat value is handled by the Zod schema
+  const safeRepeatCount = Math.min(params.repeat, 10);
   const repeatedMessage = Array(safeRepeatCount)
     .fill(formattedMessage)
     .join(' ');
@@ -106,8 +106,8 @@ export const processEchoMessage = (
     originalMessage: params.message,
     formattedMessage,
     repeatedMessage,
-    // Use nullish coalescing for default mode value from schema
-    mode: params.mode ?? 'standard',
+    // Default mode value is handled by the Zod schema
+    mode: params.mode,
     repeatCount: safeRepeatCount
   };
 

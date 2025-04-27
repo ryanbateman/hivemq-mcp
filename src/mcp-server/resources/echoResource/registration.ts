@@ -1,11 +1,15 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ListResourcesResult } from "@modelcontextprotocol/sdk/types.js"; // Import specific type
+// Import specific types needed
+import type { ListResourcesResult } from "@modelcontextprotocol/sdk/types.js"; // Removed UnsubscribeRequestSchema as it's not handled
+import { z } from 'zod'; // Import Zod for inferring type
 import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
 import { ErrorHandler } from '../../../utils/errorHandler.js';
 import { logger } from '../../../utils/logger.js';
 import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
 // Import logic, schema, and type from the dedicated logic file
-import { processEchoResource, querySchema, EchoParams } from './echoResourceLogic.js';
+import { EchoParams, processEchoResource } from './echoResourceLogic.js'; // Removed querySchema import
+
+// Type inference for UnsubscribeRequest removed as it's not handled
 
 /**
  * Registers the 'echo' resource and its handlers with the provided MCP server instance.
@@ -49,12 +53,12 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           // --- Complete Operation ---
           // (Optional) Provides suggestions or completions based on partial input.
           // Not implemented for this simple resource.
-          complete: {}
         }
       );
       logger.debug(`Resource template created for ${resourceName}`, registrationContext);
 
       // Register the resource, its template, metadata, and handler with the server
+      // This implicitly handles 'resources/read' based on the template match.
       server.resource(
         resourceName, // The unique name for this resource registration
         template,     // The ResourceTemplate defined above
@@ -65,8 +69,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           mimeType: "application/json", // Default MIME type for responses
 
           // --- Query Schema ---
-          // Defines expected query parameters (though this example uses path params via template)
-          querySchema: querySchema, // Use the Zod schema defined earlier
+          // Removed querySchema as path variable is used via template
 
           // --- Examples ---
           // Provides illustrative examples for clients
@@ -84,7 +87,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           ],
         },
 
-        // --- Resource Handler ---
+        // --- Resource Handler (for resources/read implicitly) ---
         // The core logic executed when a request matches the resource template.
         async (uri: URL, params: EchoParams) => {
           // Create handler context using the service
@@ -105,10 +108,11 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
               logger.debug("Echo resource processed successfully", handlerContext);
 
               // Return the response in the standardized format expected by the MCP SDK
+              // Correctly omits `type: "text"` as per 2025-03-26 spec
               return {
                 contents: [{
                   uri: uri.href, // Echo back the requested URI
-                  text: JSON.stringify(responseData, null, 2), // Stringify the JSON payload
+                  blob: Buffer.from(JSON.stringify(responseData)).toString('base64'), // Return Base64 encoded JSON object
                   mimeType: "application/json" // Specify the content type
                 }]
               };
@@ -128,6 +132,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           );
         }
       ); // End of server.resource call
+
 
       logger.info(`Resource registered successfully: ${resourceName}`, registrationContext);
     },
