@@ -17,9 +17,46 @@ const TRANSPORT_TYPE = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase()
 const HTTP_PORT = process.env.MCP_HTTP_PORT ? parseInt(process.env.MCP_HTTP_PORT, 10) : 3000;
 const HTTP_HOST = process.env.MCP_HTTP_HOST || '127.0.0.1';
 const MCP_ENDPOINT_PATH = '/mcp';
+const MAX_PORT_RETRIES = 15; // Maximum number of port retries
 
 // Map to store active HTTP transports by session ID
 const httpTransports: Record<string, StreamableHTTPServerTransport> = {};
+
+/**
+ * Checks if an HTTP request's origin is allowed based on environment configuration
+ * and localhost binding status. Sets CORS headers if allowed.
+ *
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {boolean} True if the origin is allowed, false otherwise.
+ */
+function isOriginAllowed(req: Request, res: Response): boolean {
+  const origin = req.headers.origin;
+  // Use req.hostname which correctly considers the Host header or falls back
+  const host = req.hostname;
+  // Check if the server is effectively bound only to loopback addresses
+  const isLocalhostBinding = ['127.0.0.1', '::1', 'localhost'].includes(host);
+  const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [];
+
+  // Allow if origin is in the list OR if bound to localhost and origin is missing/null
+  const allowed = (origin && allowedOrigins.includes(origin)) || (isLocalhostBinding && (!origin || origin === 'null'));
+
+  if (allowed && origin) {
+    // Set CORS header ONLY if origin is present and allowed
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    // Add other necessary CORS headers dynamically based on request or keep static
+    // Example: Allow common MCP headers
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Mcp-Session-Id, Last-Event-ID');
+    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Adjust if using credentials
+  } else if (allowed && !origin) {
+     // Origin is allowed (e.g. localhost binding with missing/null origin), but no origin header to echo back.
+     // Decide if you need default CORS headers here. Usually not needed if no origin is sent.
+  }
+
+  return allowed;
+}
+
 
 /**
  * Creates and configures an MCP server instance with resources, tools, and logging.
@@ -63,6 +100,59 @@ async function createMcpServerInstance(): Promise<McpServer> {
 }
 
 /**
+ * Attempts to start the HTTP server, retrying on port conflicts.
+ * @param serverInstance The HTTP server instance.
+ * @param initialPort The starting port number.
+ * @param host The host address.
+ * @param maxRetries Maximum number of retries.
+ * @param context Logging context.
+ * @returns Promise resolving with the actual port used, or rejecting if unable to bind.
+ */
+function startHttpServerWithRetry(
+  serverInstance: http.Server,
+  initialPort: number,
+  host: string,
+  maxRetries: number,
+  context: Record<string, any>
+): Promise<number> {
+  return new Promise(async (resolve, reject) => {
+    let lastError: Error | null = null;
+    for (let i = 0; i <= maxRetries; i++) {
+      const currentPort = initialPort + i;
+      try {
+        await new Promise<void>((listenResolve, listenReject) => {
+          serverInstance.listen(currentPort, host, () => {
+            logger.info(`HTTP transport listening at http://${host}:${currentPort}${MCP_ENDPOINT_PATH}`, { ...context, port: currentPort });
+            listenResolve();
+          }).on('error', (err: NodeJS.ErrnoException) => {
+            listenReject(err);
+          });
+        });
+        // If listen succeeded, resolve with the port used
+        resolve(currentPort);
+        return; // Exit the loop and promise
+      } catch (err: any) {
+        lastError = err; // Store the error
+        if (err.code === 'EADDRINUSE') {
+          logger.warning(`Port ${currentPort} already in use, retrying... (${i + 1}/${maxRetries + 1})`, { ...context, port: currentPort });
+          // Optional: Add a small delay before retrying
+          await new Promise(res => setTimeout(res, 100));
+        } else {
+          // For other errors, reject immediately
+          logger.error(`Failed to bind to port ${currentPort}: ${err.message}`, { ...context, port: currentPort, error: err.message });
+          reject(err);
+          return; // Exit the loop and promise
+        }
+      }
+    }
+    // If loop finishes without success
+    logger.error(`Failed to bind to any port after ${maxRetries + 1} attempts. Last error: ${lastError?.message}`, { ...context, initialPort, maxRetries, error: lastError?.message });
+    reject(lastError || new Error('Failed to bind to any port after multiple retries.'));
+  });
+}
+
+
+/**
  * Sets up and starts the specified transport (stdio or HTTP).
  * For HTTP: manages sessions, CORS, and SSE streams via Express.
  * For stdio: connects a single transport to stdout/stdin.
@@ -78,39 +168,30 @@ async function startTransport(): Promise<McpServer | void> {
     const app = express();
     app.use(express.json());
 
-    // Preflight handler for CORS
+    // Preflight handler for CORS using the helper function
     app.options(MCP_ENDPOINT_PATH, (req, res) => {
-      const origin = req.headers.origin;
-      const isLocal = ['127.0.0.1', '::1', 'localhost'].includes(req.hostname);
-      const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [];
-      const allowed = (origin && allowedOrigins.includes(origin)) || (isLocal && (!origin || origin === 'null'));
-      if (allowed && origin) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Mcp-Session-Id, Last-Event-ID');
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-      }
-      res.sendStatus(204);
-    });
-
-    // Middleware for basic origin checks and security headers
-    app.use((req: Request, res: Response, next: NextFunction) => {
-      const origin = req.headers.origin;
-      const isLocal = ['127.0.0.1', '::1', 'localhost'].includes(req.hostname);
-      const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [];
-      const allowed = (origin && allowedOrigins.includes(origin)) || (isLocal && (!origin || origin === 'null'));
-
-      if (!allowed) {
-        logger.warning(`Blocked CORS origin: ${origin}`, context);
+      if (isOriginAllowed(req, res)) {
+        res.sendStatus(204); // OK, Preflight successful
+      } else {
+        // isOriginAllowed already logged the warning if applicable
         res.status(403).send('Forbidden: Invalid Origin');
-        return;
       }
-      if (origin) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      }
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      next();
     });
+
+    // Middleware for origin checks and security headers using the helper function
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (!isOriginAllowed(req, res)) {
+        // isOriginAllowed already logged the warning if applicable
+        // Note: No need to log again here unless adding more detail
+        res.status(403).send('Forbidden: Invalid Origin');
+        return; // Stop processing
+      }
+      // Set additional security headers if needed
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // Potentially add other headers like CSP, HSTS etc. here
+      next(); // Origin is allowed, proceed to next middleware/handler
+    });
+
 
     // Handle initialization and message POSTs
     app.post(MCP_ENDPOINT_PATH, async (req, res) => {
@@ -169,14 +250,16 @@ async function startTransport(): Promise<McpServer | void> {
     app.get(MCP_ENDPOINT_PATH, handleSessionReq);
     app.delete(MCP_ENDPOINT_PATH, handleSessionReq);
 
-    // Start HTTP server
+    // Start HTTP server with retry logic
     const serverInstance = http.createServer(app);
-    return new Promise<void>((resolve, reject) => {
-      serverInstance.listen(HTTP_PORT, HTTP_HOST, () => {
-        logger.info(`HTTP transport listening at http://${HTTP_HOST}:${HTTP_PORT}${MCP_ENDPOINT_PATH}`, context);
-        resolve();
-      }).on('error', (err) => reject(err));
-    });
+    try {
+      await startHttpServerWithRetry(serverInstance, HTTP_PORT, HTTP_HOST, MAX_PORT_RETRIES, context);
+    } catch (err) {
+      // If startHttpServerWithRetry rejects (couldn't bind after retries), rethrow
+      throw err;
+    }
+    // If successful, the promise resolves, and we continue.
+    return; // Return void as the server is running
   }
 
   if (TRANSPORT_TYPE === 'stdio') {
