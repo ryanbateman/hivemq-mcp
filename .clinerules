@@ -1,6 +1,6 @@
 # mcp-ts-template Developer Cheatsheet
 
-This cheatsheet provides quick references for common patterns, utilities, and server configuration within the `mcp-ts-template` codebase.
+This cheatsheet provides quick references for common patterns, utilities, and server configuration within the `mcp-ts-template` codebase, updated for MCP Spec 2025-03-26.
 
 ## Server Transports & Configuration
 
@@ -11,45 +11,55 @@ The server can run using different communication transports, configured via envi
     - `"http"`: Uses Streamable HTTP Server-Sent Events (SSE) for communication. Runs an Express server.
 - **`MCP_HTTP_PORT`**: Port for the HTTP server (Default: `3000`). Used only if `MCP_TRANSPORT_TYPE=http`.
 - **`MCP_HTTP_HOST`**: Host address for the HTTP server (Default: `127.0.0.1`). Used only if `MCP_TRANSPORT_TYPE=http`.
-- **`MCP_ALLOWED_ORIGINS`**: Comma-separated list of allowed origins for HTTP requests (e.g., `http://localhost:8080,https://my-frontend.com`). Used only if `MCP_TRANSPORT_TYPE=http` and `MCP_HTTP_HOST` is not localhost.
+- **`MCP_ALLOWED_ORIGINS`**: Comma-separated list of allowed origins for HTTP requests (e.g., `http://localhost:8080,https://my-frontend.com`). Used only if `MCP_TRANSPORT_TYPE=http`.
+- **`MCP_LOG_LEVEL`**: Minimum logging level for the server (e.g., "debug", "info", "warning", "error", "notice", "crit", "alert", "emerg"). Defaults to "info". Affects both file logging and MCP notifications.
 
 ### HTTP Transport Details (`MCP_TRANSPORT_TYPE=http`)
 
 - **Endpoint**: A single endpoint `/mcp` handles all communication.
-    - `POST /mcp`: Client sends requests to the server. Requires `mcp-session-id` header for subsequent requests after initialization.
-    - `GET /mcp`: Server sends responses/notifications to the client via Server-Sent Events (SSE). Requires `mcp-session-id` header.
+    - `POST /mcp`: Client sends requests/notifications to the server. Requires `mcp-session-id` header for subsequent requests after initialization. Server responds with JSON or initiates SSE stream.
+    - `GET /mcp`: Client initiates SSE stream for server-sent messages. Requires `mcp-session-id` header.
     - `DELETE /mcp`: Client signals session termination. Requires `mcp-session-id` header.
 - **Session Management**: Each client connection establishes a session identified by the `mcp-session-id` header. The server maintains state per session.
-- **Security**: Basic origin checking is implemented. Configure `MCP_ALLOWED_ORIGINS` for production environments when not running on localhost.
+- **Security**: Robust origin checking is implemented via `originCheckMiddleware`. Configure `MCP_ALLOWED_ORIGINS` for production environments.
 
 ### Running the Server
 
 - **Stdio**: `npm start` or `node dist/index.js`
-- **HTTP**: `MCP_TRANSPORT_TYPE=http npm start` or `MCP_TRANSPORT_TYPE=http node dist/index.js` (optionally set `MCP_HTTP_PORT`, `MCP_HTTP_HOST`, `MCP_ALLOWED_ORIGINS`).
+- **HTTP**: `MCP_TRANSPORT_TYPE=http npm start` or `MCP_TRANSPORT_TYPE=http node dist/index.js` (optionally set `MCP_HTTP_PORT`, `MCP_HTTP_HOST`, `MCP_ALLOWED_ORIGINS`, `MCP_LOG_LEVEL`).
 
 ## Core Utilities Integration
-```markdown
+
 ### 1. Logging (`src/utils/logger.ts`)
 
-- **Purpose**: Structured logging for debugging and monitoring. Logs to files in the `logs/` directory.
-- **Usage**: Import the singleton `logger` instance. Pass a `context` object (usually `RequestContext`) for correlation.
+- **Purpose**: Structured logging compliant with MCP Spec (RFC 5424 levels). Logs to files (`logs/`) and can send `notifications/message` to connected clients supporting the `logging` capability.
+- **Levels**: `debug`(7), `info`(6), `notice`(5), `warning`(4), `error`(3), `crit`(2), `alert`(1), `emerg`(0).
+- **Usage**: Import the singleton `logger` instance. Pass a `context` object (`RequestContext`) for correlation.
 
 ```typescript
-import { logger } from './src/utils/logger.js';
+import { logger, McpLogLevel } from './src/utils/logger.js';
 import { RequestContext } from './src/utils/requestContext.js'; // Or OperationContext
 
 // Inside a function or handler
 const operationContext: RequestContext = /* ... get or create context ... */;
 
-logger.info("Processing request", operationContext);
-logger.debug("Detailed step info", { ...operationContext, data: someData });
-logger.warn("Potential issue detected", operationContext);
-logger.error("An error occurred", operationContext, new Error("Something failed")); // Pass error object
+logger.info("Processing request", operationContext); // Level 6
+logger.debug("Detailed step info", { ...operationContext, data: someData }); // Level 7
+logger.notice("Operation completed successfully.", operationContext); // Level 5
+logger.warning("Potential issue detected", operationContext); // Level 4 (Use warning, not warn)
+logger.error("An error occurred", new Error("Something failed"), operationContext); // Level 3 (Pass error object first)
+logger.crit("Critical system failure component", new Error("Details"), operationContext); // Level 2
+
+// Set log level dynamically (e.g., based on client request if supported)
+logger.setLevel('debug' as McpLogLevel);
+
+// Set MCP notification sender (called by server logic on connection)
+// logger.setMcpNotificationSender((level, data, loggerName) => { /* server.sendNotification logic */ });
 ```
 
 - **Key Files**:
   - `src/utils/logger.ts`: Logger implementation.
-  - `logs/`: Directory where log files are stored (`combined.log`, `error.log`, etc.).
+  - `logs/`: Directory where JSON log files are stored (`combined.log`, `error.log`, etc.).
 
 ### 2. Error Handling (`src/types-global/errors.ts`, `src/utils/errorHandler.ts`)
 
@@ -57,7 +67,7 @@ logger.error("An error occurred", operationContext, new Error("Something failed"
 - **Usage**:
   - Use `ErrorHandler.tryCatch` to wrap operations that might fail.
   - Throw `McpError` for specific, categorized errors using `BaseErrorCode`.
-  - `ErrorHandler` automatically logs errors with context and sanitized input.
+  - `ErrorHandler` automatically logs errors (using the updated logger) with context and sanitized input.
 
 ```typescript
 import { ErrorHandler } from './src/utils/errorHandler.js';
@@ -104,7 +114,6 @@ import { logger } from './src/utils/logger.js';
 function handleIncomingRequest(requestData: any) {
   const context: RequestContext = requestContextService.createRequestContext({
     operation: 'HandleIncomingRequest',
-    // Add any other relevant initial context
     initialData: requestData.id
   });
 
@@ -113,7 +122,6 @@ function handleIncomingRequest(requestData: any) {
 }
 
 function processSubTask(payload: any, parentContext: RequestContext) {
-  // Create a derived context if needed, or just pass the parent context
   const subTaskContext = { ...parentContext, subOperation: 'ProcessSubTask' };
   logger.debug("Processing sub-task", subTaskContext);
   // ... logic ...
@@ -131,29 +139,23 @@ function processSubTask(payload: any, parentContext: RequestContext) {
 ```typescript
 import { idGenerator, generateUUID } from './src/utils/idGenerator.js';
 
-// Configure prefixes (e.g., during initialization)
-idGenerator.setEntityPrefixes({
-  project: 'PROJ',
-  task: 'TASK'
-});
+idGenerator.setEntityPrefixes({ project: 'PROJ', task: 'TASK' });
 
-// Generate IDs
 const projectId = idGenerator.generateForEntity('project'); // e.g., "PROJ_A6B3J0"
 const taskId = idGenerator.generateForEntity('task', { length: 8 }); // e.g., "TASK_C9D4E1F2"
 const standardUuid = generateUUID(); // e.g., "123e4567-e89b-12d3-a456-426614174000"
 
-// Validate IDs
 const isValid = idGenerator.isValid(projectId, 'project'); // true
 const entityType = idGenerator.getEntityType(taskId); // "task"
 ```
 
 - **Key Files**:
-  - `src/utils/idGenerator.ts`: `IdGenerator` class, default `idGenerator` instance, and `generateUUID` function.
+  - `src/utils/idGenerator.ts`: `IdGenerator` class, `idGenerator` instance, `generateUUID`.
 
 ### 5. Sanitization (`src/utils/sanitization.ts`)
 
 - **Purpose**: Clean and validate input data (HTML, paths, numbers, URLs, JSON) to prevent security issues. Also sanitizes objects for logging.
-- **Usage**: Import the singleton `sanitization` instance or the `sanitizeInputForLogging` helper.
+- **Usage**: Import the singleton `sanitization` instance or `sanitizeInputForLogging`.
 
 ```typescript
 import { sanitization, sanitizeInputForLogging } from './src/utils/sanitization.js';
@@ -164,9 +166,7 @@ const safeHtml = sanitization.sanitizeHtml(unsafeHtml); // "<p>Safe content</p>"
 const unsafePath = '../../etc/passwd';
 try {
   const safePath = sanitization.sanitizePath(unsafePath, { rootDir: '/app/data' });
-} catch (error) {
-  // Handle McpError (BaseErrorCode.VALIDATION_ERROR)
-}
+} catch (error) { /* Handle McpError */ }
 
 const userInput = " 123.45 ";
 const num = sanitization.sanitizeNumber(userInput, 0, 1000); // 123.45
@@ -174,53 +174,41 @@ const num = sanitization.sanitizeNumber(userInput, 0, 1000); // 123.45
 const unsafeUrl = 'javascript:alert("bad")';
 try {
     const safeUrl = sanitization.sanitizeUrl(unsafeUrl);
-} catch (error) {
-    // Handle McpError (BaseErrorCode.VALIDATION_ERROR)
-}
+} catch (error) { /* Handle McpError */ }
 
-// Sanitize objects for logging (removes sensitive fields)
 const sensitiveData = { user: 'admin', password: 'pwd', token: 'abc' };
 const safeLogData = sanitizeInputForLogging(sensitiveData);
 // safeLogData = { user: 'admin', password: '[REDACTED]', token: '[REDACTED]' }
 ```
 
 - **Key Files**:
-  - `src/utils/sanitization.ts`: `Sanitization` class, `sanitization` instance, and `sanitizeInputForLogging` function.
+  - `src/utils/sanitization.ts`: `Sanitization` class, `sanitization` instance, `sanitizeInputForLogging`.
 
 ### 6. JSON Parsing (`src/utils/jsonParser.ts`)
 
-- **Purpose**: Parse potentially partial/incomplete JSON strings. Handles optional `<think>` blocks at the beginning of the input, logging their content.
-- **Usage**: Import the singleton `jsonParser` instance. Use `Allow` constants for partial parsing options.
+- **Purpose**: Parse potentially partial/incomplete JSON strings. Handles optional `<think>` blocks.
+- **Usage**: Import `jsonParser`. Use `Allow` constants for options.
 
 ```typescript
 import { jsonParser, Allow } from './src/utils/jsonParser.js';
 import { RequestContext } from './src/utils/requestContext.js';
 
-const partialJson = '<think>Parsing JSON...</think>{"key": "value", "incomplete": ';
+const partialJson = '<think>Parsing...</think>{"key": "value", "incomplete": ';
 const context: RequestContext = /* ... */;
 
 try {
-  // Parse allowing incomplete structures
   const parsed = jsonParser.parse(partialJson, Allow.ALL, context);
   // parsed = { key: 'value', incomplete: undefined }
-
-  // Parse requiring complete JSON (after <think> block)
-  const completeJson = '<think>Thinking...</think>{"complete": true}';
-  const fullParsed = jsonParser.parse(completeJson, Allow.NONE, context);
-  // fullParsed = { complete: true }
-
-} catch (error) {
-  // Handle McpError (BaseErrorCode.VALIDATION_ERROR)
-}
+} catch (error) { /* Handle McpError */ }
 ```
 
 - **Key Files**:
-  - `src/utils/jsonParser.ts`: `JsonParser` class, `jsonParser` instance, and `Allow` enum.
+  - `src/utils/jsonParser.ts`: `JsonParser` class, `jsonParser` instance, `Allow` enum.
 
 ### 7. Rate Limiting (`src/utils/rateLimiter.ts`)
 
-- **Purpose**: Implement rate limiting based on a key (e.g., user ID, IP address).
-- **Usage**: Import the singleton `rateLimiter` instance. Use `check` to enforce limits.
+- **Purpose**: Implement rate limiting based on a key.
+- **Usage**: Import `rateLimiter`. Use `check`.
 
 ```typescript
 import { rateLimiter } from './src/utils/rateLimiter.js';
@@ -230,68 +218,48 @@ const userId = 'user123';
 const context: RequestContext = /* ... */;
 
 try {
-  // Check rate limit for the user
   rateLimiter.check(userId, context);
+  // ... proceed ...
+} catch (error) { /* Handle McpError (RATE_LIMITED) */ }
 
-  // ... proceed with the operation ...
-
-} catch (error) {
-  // Handle McpError (BaseErrorCode.RATE_LIMITED)
-  if (error instanceof McpError && error.code === BaseErrorCode.RATE_LIMITED) {
-    console.warn(`Rate limit exceeded for ${userId}. Wait ${error.details?.waitTime}s.`);
-  } else {
-    // Handle other errors
-  }
-}
-
-// Optionally configure the limiter (e.g., during initialization)
 rateLimiter.configure({ windowMs: 60 * 1000, maxRequests: 10 });
 ```
 
 - **Key Files**:
-  - `src/utils/rateLimiter.ts`: `RateLimiter` class and `rateLimiter` instance.
+  - `src/utils/rateLimiter.ts`: `RateLimiter` class, `rateLimiter` instance.
 
 ### 8. Token Counting (`src/utils/tokenCounter.ts`)
 
-- **Purpose**: Estimate the number of tokens for text or chat messages using the `tiktoken` library (specifically with the `gpt-4o` model tokenizer).
-- **Usage**: Import `countTokens` for plain text or `countChatTokens` for chat message arrays.
+- **Purpose**: Estimate tokens using `tiktoken` (`gpt-4o` model).
+- **Usage**: Import `countTokens` or `countChatTokens`.
 
 ```typescript
 import { countTokens, countChatTokens } from './src/utils/tokenCounter.js';
 import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { RequestContext } from './src/utils/requestContext.js';
 
-const text = "This is some sample text.";
+const text = "Sample text.";
 const context: RequestContext = /* ... */;
 
 async function calculateTokens() {
   try {
     const textTokens = await countTokens(text, context);
-    console.log(`Text tokens: ${textTokens}`);
-
-    const messages: ChatCompletionMessageParam[] = [
-      { role: 'system', content: 'You are helpful.' },
-      { role: 'user', content: 'Hello!' }
-    ];
+    const messages: ChatCompletionMessageParam[] = [/* ... */];
     const chatTokens = await countChatTokens(messages, context);
-    console.log(`Chat tokens: ${chatTokens}`);
-
-  } catch (error) {
-    // Handle McpError (BaseErrorCode.INTERNAL_ERROR if tiktoken fails)
-  }
+  } catch (error) { /* Handle McpError */ }
 }
 ```
 
 - **Key Files**:
-  - `src/utils/tokenCounter.ts`: Provides `countTokens` and `countChatTokens` functions.
+  - `src/utils/tokenCounter.ts`: Provides `countTokens` and `countChatTokens`.
 
 ## Adding New Features
 
 ### Adding a Tool
 
 1.  **Directory**: `src/mcp-server/tools/yourToolName/`
-2.  **Logic (`logic.ts`)**: Define input/output types, validation schema (Zod recommended), and core processing function.
-3.  **Registration (`registration.ts`)**: Import logic, schema shape, `McpServer`, `ErrorHandler`. Use `server.tool(name, schemaShape, async handler => { ... })`. Wrap handler logic and registration in `ErrorHandler.tryCatch`.
+2.  **Logic (`logic.ts`)**: Define input/output types, Zod schema, and core processing function.
+3.  **Registration (`registration.ts`)**: Import logic, schema, `McpServer`, `ErrorHandler`. Use the 4-argument `server.tool(name, description, schemaShape, async handler => { ... })` (SDK v1.10.2+). Ensure handler returns `CallToolResult` (`{ content: [...], isError: boolean }`). Wrap handler logic and registration in `ErrorHandler.tryCatch`.
 4.  **Index (`index.ts`)**: Export registration function.
 5.  **Server (`src/mcp-server/server.ts`)**: Import and call registration function within `createMcpServerInstance`.
 
@@ -299,19 +267,19 @@ async function calculateTokens() {
 
 1.  **Directory**: `src/mcp-server/resources/yourResourceName/`
 2.  **Logic (`logic.ts`)**: Define params type, query schema (if needed), and core processing function (takes `uri: URL`, `params`).
-3.  **Registration (`registration.ts`)**: Import logic, schema, `McpServer`, `ResourceTemplate`, `ErrorHandler`. Define `ResourceTemplate`. Use `server.resource(regName, template, metadata, async handler => { ... })`. Wrap handler logic and registration in `ErrorHandler.tryCatch`.
+3.  **Registration (`registration.ts`)**: Import logic, schema, `McpServer`, `ResourceTemplate`, `ErrorHandler`. Define `ResourceTemplate`. Use `server.resource(regName, template, metadata, async handler => { ... })`. Handler should return `{ contents: [{ uri, blob, mimeType }] }` where `blob` is Base64 encoded content. Wrap handler logic and registration in `ErrorHandler.tryCatch`. If supporting subscriptions (`subscribe: true` capability), **MUST** also handle `resources/unsubscribe` request.
 4.  **Index (`index.ts`)**: Export registration function.
 5.  **Server (`src/mcp-server/server.ts`)**: Import and call registration function within `createMcpServerInstance`.
 
 ## Key File Locations
 
-- **Main Entry**: `src/index.ts` (Initializes server, handles startup/shutdown signals)
-- **Server Setup**: `src/mcp-server/server.ts` (Handles transport logic (stdio/http), session management (http), registers tools/resources via `createMcpServerInstance`)
-- **Configuration**: `src/config/index.ts` (Loads env vars, package info)
+- **Main Entry**: `src/index.ts` (Initializes server, handles startup/shutdown)
+- **Server Setup**: `src/mcp-server/server.ts` (Handles transport logic (stdio/http), session management (http), registers tools/resources)
+- **Configuration**: `src/config/index.ts` (Loads env vars, package info, initializes logger)
 - **Global Types**: `src/types-global/`
-- **Utilities**: `src/utils/` (Contains core helper modules)
+- **Utilities**: `src/utils/` (Core helper modules: logger, error handler, context, etc.)
 - **Tools**: `src/mcp-server/tools/`
 - **Resources**: `src/mcp-server/resources/`
-- **Client Config**: `src/mcp-client/mcp-config.json` (Example, used for client connections)
+- **Client Config**: `src/mcp-client/mcp-config.json` (Used for client connections, Zod validated)
 
 Remember to keep this cheatsheet updated as the codebase evolves!
