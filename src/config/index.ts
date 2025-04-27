@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { logger } from "../utils/logger.js"; // Added .js extension
+import { logger, McpLogLevel } from "../utils/logger.js"; // Import McpLogLevel and logger
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -17,12 +17,7 @@ try {
   // Read and parse package.json to get server name and version
   pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 } catch (error) {
-  // Log an error if reading or parsing fails, but continue with defaults
-  logger.error("Failed to read or parse package.json. Using default name/version.", {
-    path: pkgPath,
-    error: error instanceof Error ? error.message : String(error)
-  });
-  // Continue with default pkg info
+  // Silently use default pkg info if reading fails. Error will be logged later if needed.
 }
 
 /**
@@ -34,8 +29,8 @@ export const config = {
   mcpServerName: pkg.name,
   /** The version of the MCP server, derived from package.json. */
   mcpServerVersion: pkg.version,
-  /** Logging level for the application (e.g., "debug", "info", "warn", "error"). Defaults to "info". */
-  logLevel: process.env.LOG_LEVEL || "info",
+  /** Logging level for the application (e.g., "debug", "info", "warning", "error"). Defaults to "info". */
+  logLevel: process.env.MCP_LOG_LEVEL || "info", // Use MCP_LOG_LEVEL consistently
   /** The runtime environment (e.g., "development", "production"). Defaults to "development". */
   environment: process.env.NODE_ENV || "development",
   /** Security-related configurations. */
@@ -62,23 +57,21 @@ export const logLevel = config.logLevel;
  */
 export const environment = config.environment;
 
-// Define valid log levels
-type LogLevel = "debug" | "info" | "warn" | "error";
-const validLogLevels: LogLevel[] = ["debug", "info", "warn", "error"];
+// Define valid MCP log levels based on the logger's type definition
+const validMcpLogLevels: McpLogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit', 'alert', 'emerg'];
 
 // Validate the configured log level
-let validatedLogLevel: LogLevel = "info"; // Default to 'info'
-if (validLogLevels.includes(logLevel as LogLevel)) {
-  validatedLogLevel = logLevel as LogLevel;
+let validatedMcpLogLevel: McpLogLevel = 'info'; // Default to 'info'
+if (validMcpLogLevels.includes(logLevel as McpLogLevel)) {
+  validatedMcpLogLevel = logLevel as McpLogLevel;
 } else {
-  logger.warn(`Invalid LOG_LEVEL: "${logLevel}". Defaulting to "info".`, {
-    configuredLevel: logLevel,
-    defaultLevel: validatedLogLevel
-  });
-  // Note: Logger methods might not work correctly before initialize() is called.
+  // Silently default to 'info' if the configured level is invalid.
+  // The logger initialization message will show the actual level being used.
 }
 
-// Initialize the logger with the validated level AFTER config is defined.
-logger.initialize(validatedLogLevel);
+// Initialize the logger with the validated MCP level AFTER config is defined.
+logger.initialize(validatedMcpLogLevel);
 
+// Log initialization message using the logger itself (will go to file and potentially MCP)
+logger.info(`Logger initialized. MCP logging level: ${validatedMcpLogLevel}`);
 logger.debug("Configuration loaded successfully", { config }); // Log loaded config at debug level
