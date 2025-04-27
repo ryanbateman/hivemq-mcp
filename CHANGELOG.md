@@ -17,4 +17,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **Logging**: Aligned log levels with RFC 5424 standards and added notification support (`cad6f29`).
     - **Configuration**: Improved validation and aligned log level settings (`6c1e958`).
     - **Echo Example**: Updated Echo tool and resource implementations, including Base64 handling (`a7f385f`).
+- **Server Refinement**: Enhanced `src/mcp-server/server.ts` with comprehensive JSDoc comments, improved logging messages, and refined HTTP transport logic including error handling and session management (`6c54d1e`).
 - **Documentation**: Updated project documentation and internal cheatsheets (`de12abf`, `53c7c0d`).
