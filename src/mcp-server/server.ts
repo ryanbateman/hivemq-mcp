@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Main entry point for the MCP (Model Context Protocol) server.
+ * This file sets up the server instance, configures the transport layer (stdio or HTTP),
+ * registers resources and tools, and handles incoming MCP requests.
+ * It supports both standard input/output communication and HTTP-based communication
+ * with Server-Sent Events (SSE) for streaming responses.
+ */
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -13,22 +21,60 @@ import { registerEchoResource } from './resources/echoResource/index.js';
 import { registerEchoTool } from './tools/echoTool/index.js';
 
 // --- Configuration Constants ---
-const TRANSPORT_TYPE = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase();
-const HTTP_PORT = process.env.MCP_HTTP_PORT ? parseInt(process.env.MCP_HTTP_PORT, 10) : 3000;
-const HTTP_HOST = process.env.MCP_HTTP_HOST || '127.0.0.1';
-const MCP_ENDPOINT_PATH = '/mcp';
-const MAX_PORT_RETRIES = 15; // Maximum number of port retries
 
-// Map to store active HTTP transports by session ID
+/**
+ * Determines the transport type for the MCP server based on the MCP_TRANSPORT_TYPE environment variable.
+ * Defaults to 'stdio' if the variable is not set. Converts the value to lowercase.
+ * @constant {string} TRANSPORT_TYPE - The transport type ('stdio' or 'http').
+ */
+const TRANSPORT_TYPE = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase();
+
+/**
+ * The port number for the HTTP transport, configured via the MCP_HTTP_PORT environment variable.
+ * Defaults to 3000 if the variable is not set or invalid.
+ * @constant {number} HTTP_PORT - The port number for the HTTP server.
+ */
+const HTTP_PORT = process.env.MCP_HTTP_PORT ? parseInt(process.env.MCP_HTTP_PORT, 10) : 3000;
+
+/**
+ * The host address for the HTTP transport, configured via the MCP_HTTP_HOST environment variable.
+ * Defaults to '127.0.0.1' (localhost) if the variable is not set.
+ * @constant {string} HTTP_HOST - The host address for the HTTP server.
+ */
+const HTTP_HOST = process.env.MCP_HTTP_HOST || '127.0.0.1';
+
+/**
+ * The specific endpoint path for handling MCP requests over HTTP.
+ * @constant {string} MCP_ENDPOINT_PATH - The URL path for MCP communication.
+ */
+const MCP_ENDPOINT_PATH = '/mcp';
+
+/**
+ * The maximum number of attempts to find an available port if the initial HTTP_PORT is in use.
+ * The server will try `HTTP_PORT`, `HTTP_PORT + 1`, ..., `HTTP_PORT + MAX_PORT_RETRIES`.
+ * @constant {number} MAX_PORT_RETRIES - Maximum retry attempts for port binding.
+ */
+const MAX_PORT_RETRIES = 15;
+
+/**
+ * A record (dictionary/map) to store active HTTP transport instances, keyed by their session ID.
+ * This allows associating incoming HTTP requests with the correct ongoing MCP session.
+ * @type {Record<string, StreamableHTTPServerTransport>}
+ */
 const httpTransports: Record<string, StreamableHTTPServerTransport> = {};
 
 /**
- * Checks if an HTTP request's origin is allowed based on environment configuration
- * and localhost binding status. Sets CORS headers if allowed.
+ * Checks if an incoming HTTP request's origin header is permissible based on configuration.
+ * It considers the `MCP_ALLOWED_ORIGINS` environment variable and whether the server
+ * is bound to a loopback address (localhost). If allowed, it sets appropriate
+ * Cross-Origin Resource Sharing (CORS) headers on the response.
  *
- * @param {Request} req - Express request object
- * @param {Response} res - Express response object
- * @returns {boolean} True if the origin is allowed, false otherwise.
+ * Security Note: Carefully configure `MCP_ALLOWED_ORIGINS` in production environments
+ * to prevent unauthorized websites from interacting with the MCP server.
+ *
+ * @param {Request} req - The Express request object, containing headers like 'origin'.
+ * @param {Response} res - The Express response object, used to set CORS headers.
+ * @returns {boolean} Returns `true` if the origin is allowed, `false` otherwise.
  */
 function isOriginAllowed(req: Request, res: Response): boolean {
   const origin = req.headers.origin;
@@ -36,77 +82,98 @@ function isOriginAllowed(req: Request, res: Response): boolean {
   const host = req.hostname;
   // Check if the server is effectively bound only to loopback addresses
   const isLocalhostBinding = ['127.0.0.1', '::1', 'localhost'].includes(host);
+  // Retrieve allowed origins from environment variable, split into an array
   const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [];
 
-  // Allow if origin is in the list OR if bound to localhost and origin is missing/null
+  // Determine if the origin is allowed:
+  // 1. The origin header is present AND is in the configured allowed list.
+  // OR
+  // 2. The server is bound to localhost AND the origin header is missing or 'null' (common for local file access or redirects).
   const allowed = (origin && allowedOrigins.includes(origin)) || (isLocalhostBinding && (!origin || origin === 'null'));
 
   if (allowed && origin) {
-    // Set CORS header ONLY if origin is present and allowed
+    // If allowed and an origin was provided, set CORS headers to allow the specific origin.
     res.setHeader('Access-Control-Allow-Origin', origin);
-    // Add other necessary CORS headers dynamically based on request or keep static
-    // Example: Allow common MCP headers
+    // Allow necessary HTTP methods for MCP communication.
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    // Allow standard MCP headers and Content-Type. Last-Event-ID is for SSE resumption.
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Mcp-Session-Id, Last-Event-ID');
+    // Set credentials allowance if needed (e.g., if cookies or authentication headers are involved).
     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Adjust if using credentials
   } else if (allowed && !origin) {
-     // Origin is allowed (e.g. localhost binding with missing/null origin), but no origin header to echo back.
-     // Decide if you need default CORS headers here. Usually not needed if no origin is sent.
+     // Origin is allowed (e.g., localhost binding with missing/null origin), but no origin header to echo back.
+     // No specific CORS headers needed in this case as there's no origin to restrict/allow.
+  } else if (!allowed && origin) {
+    // Log a warning if an origin was provided but is not allowed.
+    logger.warning(`Origin denied: ${origin}`, { operation: 'isOriginAllowed', origin, host, allowedOrigins, isLocalhostBinding });
   }
+  // Note: If !allowed and !origin, no action/logging is needed.
 
   return allowed;
 }
 
 
 /**
- * Creates and configures an MCP server instance with resources, tools, and logging.
- * Designed for reuse in stateless HTTP request handling or a single stdio process.
+ * Creates and configures a new instance of the McpServer.
+ * This function encapsulates the server setup, including setting the server name,
+ * version, capabilities, and registering all defined resources and tools.
+ * It's designed to be called either once for the stdio transport or potentially
+ * multiple times for stateless handling in the HTTP transport (though currently
+ * used once per session in HTTP).
  *
  * @async
- * @returns {Promise<McpServer>} Configured MCP server instance
- * @throws {Error} If registration of resources/tools fails
+ * @returns {Promise<McpServer>} A promise that resolves with the fully configured McpServer instance.
+ * @throws {Error} Throws an error if the registration of any resource or tool fails.
  */
 async function createMcpServerInstance(): Promise<McpServer> {
   const context = { operation: 'createMcpServerInstance' };
   logger.info('Initializing MCP server instance', context);
 
-  // Configure request-scoped context for logging or tracing
+  // Configure the request context service for associating logs/traces with specific requests or operations.
   requestContextService.configure({
     appName: config.mcpServerName,
     appVersion: config.mcpServerVersion,
     environment,
   });
 
-  // Instantiate server with declared capabilities
+  // Instantiate the core McpServer with its identity and declared capabilities.
+  // Capabilities inform the client about what features the server supports (e.g., logging).
   const server = new McpServer(
     { name: config.mcpServerName, version: config.mcpServerVersion },
     { capabilities: { logging: {}, resources: { listChanged: true }, tools: { listChanged: true } } }
   );
 
   try {
-    // Register domain-specific resources and tools
+    // Register all available resources and tools with the server instance.
+    // These functions typically call `server.registerResource()` or `server.registerTool()`.
     await registerEchoResource(server);
     await registerEchoTool(server);
     logger.info('Resources and tools registered successfully', context);
   } catch (err) {
+    // Log and re-throw any errors during registration, as the server cannot function correctly without them.
     logger.error('Failed to register resources/tools', {
       ...context,
       error: err instanceof Error ? err.message : String(err),
     });
-    throw err;
+    throw err; // Propagate the error to the caller.
   }
 
   return server;
 }
 
 /**
- * Attempts to start the HTTP server, retrying on port conflicts.
- * @param serverInstance The HTTP server instance.
- * @param initialPort The starting port number.
- * @param host The host address.
- * @param maxRetries Maximum number of retries.
- * @param context Logging context.
- * @returns Promise resolving with the actual port used, or rejecting if unable to bind.
+ * Attempts to start the Node.js HTTP server on a specified port and host.
+ * If the initial port is already in use (EADDRINUSE error), it increments the port
+ * number and retries, up to a maximum number of retries (`maxRetries`).
+ *
+ * @async
+ * @param {http.Server} serverInstance - The Node.js HTTP server instance to start.
+ * @param {number} initialPort - The first port number to attempt binding to.
+ * @param {string} host - The host address to bind to (e.g., '127.0.0.1').
+ * @param {number} maxRetries - The maximum number of additional ports to try (initialPort + 1, initialPort + 2, ...).
+ * @param {Record<string, any>} context - Logging context to associate with log messages.
+ * @returns {Promise<number>} A promise that resolves with the port number the server successfully bound to.
+ * @throws {Error} Rejects if the server fails to bind to any port after all retries, or if a non-EADDRINUSE error occurs.
  */
 function startHttpServerWithRetry(
   serverInstance: http.Server,
@@ -117,35 +184,41 @@ function startHttpServerWithRetry(
 ): Promise<number> {
   return new Promise(async (resolve, reject) => {
     let lastError: Error | null = null;
+    // Loop through ports: initialPort, initialPort + 1, ..., initialPort + maxRetries
     for (let i = 0; i <= maxRetries; i++) {
       const currentPort = initialPort + i;
       try {
+        // Attempt to listen on the current port and host.
         await new Promise<void>((listenResolve, listenReject) => {
           serverInstance.listen(currentPort, host, () => {
-            logger.info(`HTTP transport listening at http://${host}:${currentPort}${MCP_ENDPOINT_PATH}`, { ...context, port: currentPort });
+            // If listen succeeds immediately, log the success and resolve the inner promise.
+            const serverAddress = `http://${host}:${currentPort}${MCP_ENDPOINT_PATH}`;
+            logger.info(`HTTP transport listening at ${serverAddress}`, { ...context, port: currentPort, address: serverAddress });
             listenResolve();
           }).on('error', (err: NodeJS.ErrnoException) => {
+            // If an error occurs during listen (e.g., EADDRINUSE), reject the inner promise.
             listenReject(err);
           });
         });
-        // If listen succeeded, resolve with the port used
+        // If the inner promise resolved (listen was successful), resolve the outer promise with the port used.
         resolve(currentPort);
-        return; // Exit the loop and promise
+        return; // Exit the loop and the function.
       } catch (err: any) {
-        lastError = err; // Store the error
+        lastError = err; // Store the error for potential final rejection message.
         if (err.code === 'EADDRINUSE') {
+          // If the port is in use, log a warning and continue to the next iteration.
           logger.warning(`Port ${currentPort} already in use, retrying... (${i + 1}/${maxRetries + 1})`, { ...context, port: currentPort });
-          // Optional: Add a small delay before retrying
+          // Optional delay before retrying to allow the other process potentially release the port.
           await new Promise(res => setTimeout(res, 100));
         } else {
-          // For other errors, reject immediately
+          // If a different error occurred (e.g., permission denied), log it and reject immediately.
           logger.error(`Failed to bind to port ${currentPort}: ${err.message}`, { ...context, port: currentPort, error: err.message });
           reject(err);
-          return; // Exit the loop and promise
+          return; // Exit the loop and the function.
         }
       }
     }
-    // If loop finishes without success
+    // If the loop completes without successfully binding to any port.
     logger.error(`Failed to bind to any port after ${maxRetries + 1} attempts. Last error: ${lastError?.message}`, { ...context, initialPort, maxRetries, error: lastError?.message });
     reject(lastError || new Error('Failed to bind to any port after multiple retries.'));
   });
@@ -153,140 +226,251 @@ function startHttpServerWithRetry(
 
 
 /**
- * Sets up and starts the specified transport (stdio or HTTP).
- * For HTTP: manages sessions, CORS, and SSE streams via Express.
- * For stdio: connects a single transport to stdout/stdin.
+ * Sets up and starts the MCP transport layer based on the `TRANSPORT_TYPE` constant.
+ *
+ * If `TRANSPORT_TYPE` is 'http':
+ * - Creates an Express application.
+ * - Configures middleware for JSON parsing and CORS handling (using `isOriginAllowed`).
+ * - Defines endpoints (`POST`, `GET`, `DELETE` at `MCP_ENDPOINT_PATH`) to handle MCP requests:
+ *   - `POST`: Handles initialization requests (creating new sessions/transports) and subsequent message requests for existing sessions.
+ *   - `GET`: Handles establishing the Server-Sent Events (SSE) connection for streaming responses.
+ *   - `DELETE`: Handles session termination requests.
+ * - Manages session lifecycles using the `httpTransports` map.
+ * - Starts the HTTP server using `startHttpServerWithRetry`.
+ *
+ * If `TRANSPORT_TYPE` is 'stdio':
+ * - Creates a single `McpServer` instance.
+ * - Creates a `StdioServerTransport`.
+ * - Connects the server and transport to process messages via standard input/output.
+ * - Returns the created `McpServer` instance.
  *
  * @async
- * @returns {Promise<McpServer | void>} MCP server instance for stdio transport
+ * @returns {Promise<McpServer | void>} For 'stdio' transport, returns the `McpServer` instance. For 'http' transport, returns `void` as the server runs indefinitely.
+ * @throws {Error} Throws an error if the transport type is unsupported, or if server creation/connection fails.
  */
 async function startTransport(): Promise<McpServer | void> {
   const context = { operation: 'startTransport', transport: TRANSPORT_TYPE };
   logger.info(`Starting transport: ${TRANSPORT_TYPE}`, context);
 
+  // --- HTTP Transport Setup ---
   if (TRANSPORT_TYPE === 'http') {
     const app = express();
+    // Middleware to parse JSON request bodies.
     app.use(express.json());
 
-    // Preflight handler for CORS using the helper function
+    // Handle CORS preflight (OPTIONS) requests.
     app.options(MCP_ENDPOINT_PATH, (req, res) => {
       if (isOriginAllowed(req, res)) {
-        res.sendStatus(204); // OK, Preflight successful
+        // Origin is allowed, send success status for preflight.
+        res.sendStatus(204); // No Content
       } else {
-        // isOriginAllowed already logged the warning if applicable
+        // Origin not allowed, send forbidden status. isOriginAllowed logs the warning.
         res.status(403).send('Forbidden: Invalid Origin');
       }
     });
 
-    // Middleware for origin checks and security headers using the helper function
+    // Middleware for all requests to check origin and set security headers.
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (!isOriginAllowed(req, res)) {
-        // isOriginAllowed already logged the warning if applicable
-        // Note: No need to log again here unless adding more detail
+        // Origin not allowed, block the request. isOriginAllowed logs the warning.
         res.status(403).send('Forbidden: Invalid Origin');
-        return; // Stop processing
+        return; // Stop processing the request.
       }
-      // Set additional security headers if needed
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      // Potentially add other headers like CSP, HSTS etc. here
-      next(); // Origin is allowed, proceed to next middleware/handler
+      // Set standard security headers for allowed requests.
+      res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME type sniffing.
+      // Consider adding other headers like Content-Security-Policy (CSP), Strict-Transport-Security (HSTS) here.
+      next(); // Origin is allowed, proceed to the specific route handler.
     });
 
 
-    // Handle initialization and message POSTs
+    // Handle POST requests (Initialization and subsequent messages).
     app.post(MCP_ENDPOINT_PATH, async (req, res) => {
+      // Extract session ID from the custom MCP header.
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      // Look up existing transport for this session.
       let transport = sessionId ? httpTransports[sessionId] : undefined;
+      // Check if the request body is an MCP Initialize request.
+      const isInitReq = isInitializeRequest(req.body);
+      const requestId = (req.body as any)?.id || null; // For error responses
 
       try {
-        if (!transport && isInitializeRequest(req.body)) {
-          logger.info('Initializing new session', context);
+        // --- Handle Initialization Request ---
+        if (isInitReq) {
+          if (transport) {
+            // This indicates a potential client error or session ID collision (very unlikely).
+            logger.warning('Received initialize request on an existing session ID. Closing old session.', { ...context, sessionId });
+            // Close the old transport cleanly before creating a new one.
+            await transport.close(); // Assuming close is async and handles cleanup
+            delete httpTransports[sessionId!]; // Remove from map
+          }
+
+          logger.info('Initializing new session via POST request', { ...context, bodyPreview: JSON.stringify(req.body).substring(0, 100) }); // Log preview for debugging
+
+          // Create a new streamable HTTP transport for this session.
           transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => randomUUID(),
+            sessionIdGenerator: () => randomUUID(), // Generate a unique session ID.
             onsessioninitialized: (newId) => {
+              // Store the transport instance in the map once the session ID is generated.
               httpTransports[newId] = transport!;
-              logger.info(`Session created: ${newId}`, { ...context, sessionId: newId });
+              logger.info(`HTTP Session created: ${newId}`, { ...context, sessionId: newId });
             },
           });
+
+          // Define cleanup logic when the transport closes (e.g., client disconnects, DELETE request).
           transport.onclose = () => {
             if (transport!.sessionId) {
               delete httpTransports[transport!.sessionId];
-              logger.info(`Session closed: ${transport!.sessionId}`, context);
+              logger.info(`HTTP Session closed: ${transport!.sessionId}`, { ...context, sessionId: transport!.sessionId });
             }
           };
+
+          // Create a dedicated McpServer instance for this new session.
           const server = await createMcpServerInstance();
+          // Connect the server logic to the transport layer.
           await server.connect(transport);
+          // Note: The transport handles sending the initialize response internally upon connection.
+          // We still need to call handleRequest below to process the *content* of the initialize message.
+
         } else if (!transport) {
-          logger.warning('Invalid session for POST', context);
-          res.status(404).json({ jsonrpc: '2.0', error: { code: -32004, message: 'Invalid session' }, id: null });
-          return;
+          // --- Handle Non-Initialize Request without Valid Session ---
+          // If it's not an initialization request, but no transport was found for the session ID.
+          logger.warning('Invalid session ID provided for non-initialize POST request', { ...context, sessionId });
+          res.status(404).json({ jsonrpc: '2.0', error: { code: -32004, message: 'Invalid or expired session ID' }, id: requestId });
+          return; // Stop processing.
         }
 
+        // --- Handle Request (Initialize or Subsequent Message) ---
+        // At this point, 'transport' must be defined (either found or newly created).
+        if (!transport) {
+           // Defensive check: This state should not be reachable if logic above is correct.
+           logger.error('Internal error: Transport is unexpectedly undefined before handleRequest', { ...context, sessionId, isInitReq });
+           throw new Error('Internal server error: Transport unavailable');
+        }
+        // Delegate the actual handling of the request (parsing, routing to server, sending response)
+        // to the transport instance. This works for both the initial initialize message and subsequent messages.
         await transport.handleRequest(req, res, req.body);
+
       } catch (err) {
-        logger.error('Error handling POST', { ...context, error: err instanceof Error ? err.message : String(err) });
+        // Catch-all for errors during POST handling.
+        logger.error('Error handling POST request', {
+            ...context,
+            sessionId,
+            isInitReq,
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined
+        });
+        // Send a generic JSON-RPC error response if headers haven't been sent yet.
         if (!res.headersSent) {
-          res.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id: (req.body as any)?.id || null });
+          res.status(500).json({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal server error during POST handling' }, id: requestId });
+        }
+        // Ensure transport is cleaned up if an error occurred during initialization
+        if (isInitReq && transport && !transport.sessionId) {
+            // If init failed before session ID was assigned, manually trigger cleanup if needed
+            await transport.close().catch(closeErr => logger.error('Error closing transport after init failure', { ...context, closeError: closeErr }));
         }
       }
     });
 
-    // Unified GET and DELETE handler for SSE and session cleanup
+    // Unified handler for GET (SSE connection) and DELETE (session termination).
     const handleSessionReq = async (req: Request, res: Response) => {
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
       const transport = sessionId ? httpTransports[sessionId] : undefined;
+      const method = req.method; // GET or DELETE
+
       if (!transport) {
-        logger.warning(`No transport for ${req.method}`, context);
-        res.status(404).send('Session not found');
+        logger.warning(`Session not found for ${method} request`, { ...context, sessionId, method });
+        res.status(404).send('Session not found or expired');
         return;
       }
+
       try {
+        // Delegate handling to the transport (establishes SSE for GET, triggers close for DELETE).
         await transport.handleRequest(req, res);
+        logger.info(`Successfully handled ${method} request for session`, { ...context, sessionId, method });
       } catch (err) {
-        logger.error(`Error on ${req.method}`, { ...context, error: err instanceof Error ? err.message : String(err) });
-        if (!res.headersSent) res.status(500).send('Internal Server Error');
+        logger.error(`Error handling ${method} request for session`, {
+            ...context,
+            sessionId,
+            method,
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined
+        });
+        // Send generic error if headers not sent (e.g., error before SSE connection established).
+        if (!res.headersSent) {
+            res.status(500).send('Internal Server Error');
+        }
+        // Note: If SSE connection was established, errors might need different handling (e.g., sending error event).
+        // The transport's handleRequest should manage SSE-specific error reporting.
       }
     };
+    // Route GET and DELETE requests to the unified handler.
     app.get(MCP_ENDPOINT_PATH, handleSessionReq);
     app.delete(MCP_ENDPOINT_PATH, handleSessionReq);
 
-    // Start HTTP server with retry logic
+    // --- Start HTTP Server ---
     const serverInstance = http.createServer(app);
     try {
-      await startHttpServerWithRetry(serverInstance, HTTP_PORT, HTTP_HOST, MAX_PORT_RETRIES, context);
+      // Attempt to start the server, retrying ports if necessary.
+      const actualPort = await startHttpServerWithRetry(serverInstance, HTTP_PORT, HTTP_HOST, MAX_PORT_RETRIES, context);
+      // Log the final address only after successful binding.
+      const serverAddress = `http://${HTTP_HOST}:${actualPort}${MCP_ENDPOINT_PATH}`;
+      // Use console.log for prominent startup message visibility.
+      console.log(`\n🚀 MCP Server running in HTTP mode at: ${serverAddress}\n`);
     } catch (err) {
-      // If startHttpServerWithRetry rejects (couldn't bind after retries), rethrow
+      // If startHttpServerWithRetry failed after all retries.
+      logger.fatal('HTTP server failed to start after multiple port retries.', { ...context, error: err instanceof Error ? err.message : String(err) });
+      // Rethrow or exit, as the server cannot run.
       throw err;
     }
-    // If successful, the promise resolves, and we continue.
-    return; // Return void as the server is running
+    // For HTTP transport, the server runs indefinitely, so return void.
+    return;
   }
 
+  // --- Stdio Transport Setup ---
   if (TRANSPORT_TYPE === 'stdio') {
     try {
+      // Create a single server instance for the stdio process.
       const server = await createMcpServerInstance();
+      // Create the stdio transport, which reads from stdin and writes to stdout.
       const transport = new StdioServerTransport();
+      // Connect the server logic to the stdio transport.
       await server.connect(transport);
-      logger.info('Connected via stdio', context);
+      logger.info('MCP Server connected via stdio transport', context);
+      // Return the server instance, as it might be needed by the calling process.
       return server;
     } catch (err) {
+      // Handle critical errors during stdio setup.
       ErrorHandler.handleError(err, { operation: 'stdioConnect', critical: true });
+      // Rethrow to indicate failure.
       throw err;
     }
   }
 
-  throw new Error(`Unsupported transport: ${TRANSPORT_TYPE}`);
+  // --- Unsupported Transport ---
+  // If TRANSPORT_TYPE is neither 'http' nor 'stdio'.
+  logger.fatal(`Unsupported transport type configured: ${TRANSPORT_TYPE}`, context);
+  throw new Error(`Unsupported transport type: ${TRANSPORT_TYPE}. Must be 'stdio' or 'http'.`);
 }
 
 /**
- * Main entry point: initializes and starts MCP server.
+ * Main application entry point.
+ * Calls `startTransport` to initialize and start the MCP server based on the
+ * configured transport type. Handles top-level errors during startup.
+ *
+ * @async
+ * @export
+ * @returns {Promise<void | McpServer>} Resolves with the McpServer instance if using stdio, or void if using http (as it runs indefinitely). Rejects on critical startup failure.
  */
 export async function initializeAndStartServer(): Promise<void | McpServer> {
   try {
+    // Start the appropriate transport (stdio or http).
     return await startTransport();
   } catch (err) {
-    logger.error('Failed to start MCP server', { error: err instanceof Error ? err.message : String(err) });
+    // Log fatal errors during the server startup process.
+    logger.fatal('Failed to initialize and start MCP server', { error: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? err.stack : undefined });
+    // Use the global error handler for critical failures.
     ErrorHandler.handleError(err, { operation: 'initializeAndStartServer', critical: true });
+    // Exit the process with an error code to signal failure.
     process.exit(1);
   }
 }
