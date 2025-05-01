@@ -25,7 +25,11 @@ Whether you're creating a new MCP server to extend an AI's capabilities or integ
 
 _For a deep dive into all features, see the [Detailed Features Table](#detailed-features-table) below._
 
-## 🚀 Quick Start
+## 📋 Table of Contents
+
+[Features](#key-features) | [Quick Start](#quick-start) | [Configuration](#configuration) | [Adding Tools/Resources](#adding-your-own-tools--resources) | [Project Structure](#project-structure) | [More MCP Resources](#explore-more-mcp-resources) | [License](#license) | [Detailed Features](#detailed-features-table)
+
+## Quick Start
 
 Get the example server running in minutes:
 
@@ -161,7 +165,7 @@ Looking for more examples, guides, and pre-built MCP servers? Check out the comp
 
 ➡️ **[cyanheads/model-context-protocol-resources](https://github.com/cyanheads/model-context-protocol-resources)**
 
-This collection includes servers for Filesystem, Obsidian, Git, GitHub, Perplexity, Atlas, Ntfy, and more, along with in-depth guides based on real-world MCP usage.
+This collection includes servers for Filesystem, Obsidian, Git, GitHub, Perplexity, Atlas, Ntfy, and more, along with in-depth guides based on my real-world MCP development.
 
 ## 📜 License
 
