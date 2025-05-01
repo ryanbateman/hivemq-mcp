@@ -1,5 +1,6 @@
 import { BaseErrorCode, McpError } from '../../types-global/errors.js';
-// Import utils from the main barrel file (logger, RequestContext from ../internal/*)
+// Import config and utils
+import { environment } from '../../config/index.js'; // Import environment from config
 import { logger, RequestContext } from '../index.js';
 
 /**
@@ -139,8 +140,8 @@ export class RateLimiter {
    * @throws {McpError} If rate limit is exceeded
    */
   public check(key: string, context?: RequestContext): void {
-    // Skip in development if configured
-    if (this.config.skipInDevelopment && process.env.NODE_ENV === 'development') {
+    // Skip in development if configured, using the validated environment from config
+    if (this.config.skipInDevelopment && environment === 'development') {
       return;
     }
 

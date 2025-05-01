@@ -81,7 +81,8 @@ const start = async () => {
 
 
   // Create application-level request context using the service instance
-  const transportType = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase();
+  // Use the validated transport type from the config object
+  const transportType = config.mcpTransportType;
   const startupContext = requestContextService.createRequestContext({
     operation: `ServerStartup_${transportType}`, // Include transport in operation name
     appName: config.mcpServerName,
