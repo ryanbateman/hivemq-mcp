@@ -5,17 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2025-05-01
+
+This release focuses on integrating API documentation generation, enhancing the HTTP transport layer, and refining server initialization and logging.
+
+- **API Documentation & Build**: Integrated TypeDoc for automated API documentation generation. Added `typedoc.json` configuration and a `docs:generate` script to `package.json`. Updated `.gitignore` to exclude the generated `docs/api/` directory and refreshed `README.md` and `docs/tree.md`. (Commit: `b1e5f4d` - approx, based on sequence)
+- **MCP Types & Server Initialization**: Removed redundant local MCP type definitions (`src/types-global/mcp.ts`, `src/types-global/tool.ts`), relying on the SDK types. Refactored the main server entry point (`src/index.ts`) to initialize the logger _after_ configuration loading and used an async IIFE for startup. Improved JSDoc clarity in server, resource, and tool registration files. (Commit: `0459112`)
+- **HTTP Transport & Logging Enhancements**:
+  - Added stricter security headers (CSP, HSTS, Permissions-Policy) to HTTP responses.
+  - Improved logging detail within the HTTP transport for origin checks, session handling, port checks, and request flow.
+  - Made logger initialization asynchronous and added conditional console logging (active only when `MCP_LOG_LEVEL=debug` and stdout is a TTY).
+  - Implemented a workaround for an SDK `isInitializeRequest` check issue in the HTTP transport.
+  - Changed the default HTTP port from 3000 to 3010.
+  - Enhanced port conflict detection with proactive checks before binding.
+  - Cleaned up minor logging inconsistencies. (Commit: `76bf1b8`)
+
+## [1.0.6] - 2025-04-29
 
 ### Added
+
 - Zod dependency for enhanced schema validation (`e038177`).
 
 ### Changed
+
 - **Project Alignment**: Updated core components to align with the **MCP Specification (2025-03-26)** and **TypeScript SDK (v1.10.2+)**. Key areas refactored include:
-    - **Server**: Implemented Streamable HTTP transport (`b2b8665`).
-    - **Client**: Enhanced capabilities handling, configuration loading (using Zod), and transport management (Stdio/HTTP) (`38f68b8`).
-    - **Logging**: Aligned log levels with RFC 5424 standards and added notification support (`cad6f29`).
-    - **Configuration**: Improved validation and aligned log level settings (`6c1e958`).
-    - **Echo Example**: Updated Echo tool and resource implementations, including Base64 handling (`a7f385f`).
+  - **Server**: Implemented Streamable HTTP transport (`b2b8665`).
+  - **Client**: Enhanced capabilities handling, configuration loading (using Zod), and transport management (Stdio/HTTP) (`38f68b8`).
+  - **Logging**: Aligned log levels with RFC 5424 standards and added notification support (`cad6f29`).
+  - **Configuration**: Improved validation and aligned log level settings (`6c1e958`).
+  - **Echo Example**: Updated Echo tool and resource implementations, including Base64 handling (`a7f385f`).
 - **Server Refinement**: Enhanced `src/mcp-server/server.ts` with comprehensive JSDoc comments, improved logging messages, and refined HTTP transport logic including error handling and session management (`6c54d1e`).
 - **Documentation**: Updated project documentation and internal cheatsheets (`de12abf`, `53c7c0d`).
