@@ -1,10 +1,9 @@
-import { readFileSync, existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
-import { logger } from "../utils/logger.js";
-// Import RequestContext type directly
-import { RequestContext, requestContextService } from "../utils/requestContext.js";
+// Import utils from the main barrel file (logger, RequestContext, requestContextService from ../utils/internal/*)
+import { logger, RequestContext, requestContextService } from "../utils/index.js";
 // Import local McpError and BaseErrorCode
 import { BaseErrorCode, McpError } from "../types-global/errors.js";
 

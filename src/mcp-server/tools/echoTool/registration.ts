@@ -1,9 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 // Import schema and types from the logic file
 import { BaseErrorCode, McpError } from "../../../types-global/errors.js";
-import { ErrorHandler } from "../../../utils/errorHandler.js";
-import { logger } from "../../../utils/logger.js";
-import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
+// Import utils from the main barrel file (ErrorHandler, logger, requestContextService from ../../../utils/internal/*)
+import { ErrorHandler, logger, requestContextService } from "../../../utils/index.js";
 import type { EchoToolInput } from './echoToolLogic.js'; // Use type import
 import { EchoToolInputSchema } from './echoToolLogic.js'; // Schema needed for shape extraction
 // Import the core logic function
@@ -80,7 +79,7 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
               context: handlerContext, // Pass handler-specific context
               input: params, // Log input parameters on error
               // Provide a custom error mapping for more specific error reporting
-              errorMapper: (error) => new McpError(
+              errorMapper: (error: unknown) => new McpError( // Add type 'unknown' to error parameter
                 // Use VALIDATION_ERROR if the error likely stems from processing invalid (though schema-valid) input
                 error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
                 `Error processing echo message tool: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -99,7 +98,7 @@ export const registerEchoTool = async (server: McpServer): Promise<void> => {
       context: registrationContext, // Context for registration-level errors
       errorCode: BaseErrorCode.INTERNAL_ERROR, // Default error code for registration failure
       // Custom error mapping for registration failures
-      errorMapper: (error) => new McpError(
+      errorMapper: (error: unknown) => new McpError( // Add type 'unknown' to error parameter
         error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
         `Failed to register tool '${toolName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
         { ...registrationContext } // Include context in the McpError

@@ -1,8 +1,9 @@
 import path from 'path';
 import sanitizeHtml from 'sanitize-html';
 import validator from 'validator';
-import { BaseErrorCode, McpError } from '../types-global/errors.js';
-import { logger } from './logger.js';
+import { BaseErrorCode, McpError } from '../../types-global/errors.js';
+// Import utils from the main barrel file (logger from ../internal/logger.js)
+import { logger } from '../index.js';
 
 /**
  * Options for path sanitization
@@ -73,7 +74,7 @@ export class Sanitization {
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
-    logger.debug('Sanitization service initialized with modern libraries');
+    // Removed logger call from constructor to prevent logging before initialization
   }
 
   /**

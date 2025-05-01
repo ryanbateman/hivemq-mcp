@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { OperationContext } from "../utils/requestContext.js"; // Updated import
+// Import utils from the main barrel file (OperationContext from ../utils/internal/requestContext.js)
+import { OperationContext } from "../utils/index.js";
 import { McpToolResult } from './mcp.js'; // Renamed McpToolResponse to McpToolResult
 
 /**

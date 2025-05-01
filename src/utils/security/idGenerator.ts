@@ -1,6 +1,7 @@
-import { randomBytes } from 'crypto';
-import { BaseErrorCode, McpError } from '../types-global/errors.js';
-import { logger } from './logger.js';
+import { randomBytes, randomUUID as cryptoRandomUUID } from 'crypto'; // Import cryptoRandomUUID
+import { BaseErrorCode, McpError } from '../../types-global/errors.js'; // Corrected path
+// Import utils from the main barrel file (logger from ../internal/logger.js)
+import { logger } from '../index.js';
 
 /**
  * Interface for entity prefix configuration
@@ -55,7 +56,7 @@ export class IdGenerator {
       return acc;
     }, {} as Record<string, string>);
     
-    logger.debug('Entity prefixes updated', { entityPrefixes: this.entityPrefixes });
+    // Removed logger call from setEntityPrefixes to prevent logging before initialization
   }
 
   /**
@@ -205,5 +206,5 @@ export const idGenerator = new IdGenerator();
 
 // For standalone use as a UUID generator
 export const generateUUID = (): string => {
-  return crypto.randomUUID();
+  return cryptoRandomUUID(); // Use imported cryptoRandomUUID
 };

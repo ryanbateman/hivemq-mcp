@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { logger } from '../../../utils/logger.js';
-import type { RequestContext } from '../../../utils/requestContext.js'; // Import RequestContext type
+// Import utils from the main barrel file (logger from ../../../utils/internal/logger.js, RequestContext from ../../../utils/internal/requestContext.js)
+import { logger, type RequestContext } from '../../../utils/index.js';
 
 /**
  * Zod schema defining the expected query parameters for the echo resource.
@@ -33,11 +33,11 @@ export const processEchoResource = (
   params: EchoParams,
   context: RequestContext // Add context parameter
 ): { message: string; timestamp: string; requestUri: string } => {
-  // Extract message from params, fallback to path variable (uri.host), then to default
-  const rawMessage = params.message ?? uri.host;
-  const message = rawMessage || 'Hello from echo resource!';
+  // The 'message' parameter is guaranteed by the ResourceTemplate match "echo://{message}"
+  // Use the value directly from the params object populated by the SDK.
+  const message = params.message || 'Default message if somehow empty'; // Added fallback just in case, though template should ensure it exists.
   // Use the passed context for logging
-  logger.debug("Processing echo resource logic", { ...context, message, rawMessage });
+  logger.debug("Processing echo resource logic", { ...context, message });
 
   // Prepare response data including timestamp and original URI
   return {

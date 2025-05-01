@@ -1,11 +1,9 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 // Import specific types needed
 import type { ListResourcesResult } from "@modelcontextprotocol/sdk/types.js"; // Removed UnsubscribeRequestSchema as it's not handled
-import { z } from 'zod'; // Import Zod for inferring type
 import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
-import { ErrorHandler } from '../../../utils/errorHandler.js';
-import { logger } from '../../../utils/logger.js';
-import { requestContextService } from '../../../utils/requestContext.js'; // Import the service
+// Import utils from the main barrel file (ErrorHandler, logger, requestContextService from ../../../utils/internal/*)
+import { ErrorHandler, logger, requestContextService } from '../../../utils/index.js';
 // Import logic, schema, and type from the dedicated logic file
 import { EchoParams, processEchoResource } from './echoResourceLogic.js'; // Removed querySchema import
 
@@ -123,7 +121,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
               context: handlerContext, // Pass handler-specific context
               input: { uri: uri.href, params }, // Log input on error
               // Provide a custom error mapping for more specific error reporting
-              errorMapper: (error) => new McpError(
+              errorMapper: (error: unknown) => new McpError( // Add type 'unknown' to error parameter
                 BaseErrorCode.INTERNAL_ERROR, // Map internal errors
                 `Error processing echo resource request for URI '${uri.href}': ${error instanceof Error ? error.message : 'Unknown error'}`,
                 { ...handlerContext } // Include context in the McpError
@@ -142,7 +140,7 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
       context: registrationContext, // Context for registration-level errors
       errorCode: BaseErrorCode.INTERNAL_ERROR, // Default error code for registration failure
       // Custom error mapping for registration failures
-      errorMapper: (error) => new McpError(
+      errorMapper: (error: unknown) => new McpError( // Add type 'unknown' to error parameter
         error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
         `Failed to register resource '${resourceName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
         { ...registrationContext } // Include context in the McpError

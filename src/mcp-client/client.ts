@@ -1,9 +1,8 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { ClientCapabilities } from "@modelcontextprotocol/sdk/types.js"; // Import ClientCapabilities type
 import { BaseErrorCode, McpError } from "../types-global/errors.js";
-import { ErrorHandler } from "../utils/errorHandler.js";
-import { logger } from "../utils/logger.js";
-import { RequestContext, requestContextService } from "../utils/requestContext.js";
+// Import utils from the main barrel file (ErrorHandler, logger, RequestContext, requestContextService from ../utils/internal/*)
+import { ErrorHandler, logger, RequestContext, requestContextService } from "../utils/index.js";
 import { getClientTransport } from "./transport.js";
 // Import config loader for early validation
 import { getMcpServerConfig } from "./configLoader.js";

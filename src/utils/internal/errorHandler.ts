@@ -1,6 +1,6 @@
-import { BaseErrorCode, McpError } from '../types-global/errors.js';
+import { BaseErrorCode, McpError } from '../../types-global/errors.js'; // Corrected path
 import { logger } from './logger.js';
-import { sanitizeInputForLogging } from './sanitization.js'; // Updated import
+import { sanitizeInputForLogging } from '../index.js'; // Import from main barrel file
 
 /**
  * Generic error context interface
@@ -150,7 +150,7 @@ export class ErrorHandler {
     if (error instanceof McpError) {
       return error.code;
     }
-    
+
     const errorName = getErrorName(error);
     const errorMessage = getErrorMessage(error);
     
@@ -195,9 +195,11 @@ export class ErrorHandler {
     if (error instanceof McpError) {
       // Add any additional context
       if (context && Object.keys(context).length > 0) {
-        error.details = { ...error.details, ...context };
+        // Ensure details is an object before spreading
+        const existingDetails = typeof error.details === 'object' && error.details !== null ? error.details : {};
+        error.details = { ...existingDetails, ...context };
       }
-      
+
       // Log the error with sanitized input
       logger.error(`Error ${operation}: ${error.message}`, {
         errorCode: error.code,
@@ -207,20 +209,21 @@ export class ErrorHandler {
         critical,
         ...context
       });
-      
+
       if (rethrow) {
         throw error;
       }
-      
+
+      // Ensure the function returns an Error type
       return error;
     }
-    
+
     // Sanitize input for logging
     const sanitizedInput = input ? sanitizeInputForLogging(input) : undefined;
     
     // Log the error with consistent format
     logger.error(`Error ${operation}`, {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error), // Use helper function
       errorType: getErrorName(error),
       input: sanitizedInput,
       requestId: context?.requestId,
@@ -228,32 +231,36 @@ export class ErrorHandler {
       critical,
       ...context
     });
-    
+
     // Choose the error code (explicit > determined > default)
     const errorCode = explicitErrorCode || 
                       ErrorHandler.determineErrorCode(error) || 
                       BaseErrorCode.INTERNAL_ERROR;
     
     // Transform to appropriate error type
-    const transformedError = options.errorMapper 
-      ? options.errorMapper(error)
-      : new McpError(
-          errorCode,
-          `Error ${operation}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          {
-            originalError: getErrorName(error),
-            ...context
-          }
-        );
-    
+    let transformedError: Error;
+    if (options.errorMapper) {
+      transformedError = options.errorMapper(error);
+    } else {
+      transformedError = new McpError(
+        errorCode,
+        `Error ${operation}: ${getErrorMessage(error)}`, // Use helper function
+        {
+          originalError: getErrorName(error),
+          ...context
+        }
+      );
+    }
+
     // Rethrow if requested
     if (rethrow) {
       throw transformedError;
     }
-    
+
+    // Ensure the function returns an Error type
     return transformedError;
   }
-  
+
   /**
    * Map an error to a specific error type based on error message patterns
    * @param error The error to map
@@ -309,10 +316,11 @@ export class ErrorHandler {
       return {
         code: error.code,
         message: error.message,
-        details: error.details || {}
+        // Ensure details is an object
+        details: typeof error.details === 'object' && error.details !== null ? error.details : {}
       };
     }
-    
+
     if (error instanceof Error) {
       return {
         code: ErrorHandler.determineErrorCode(error),

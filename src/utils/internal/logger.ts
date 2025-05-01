@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import winston from 'winston';
 import TransportStream from 'winston-transport';
-import { config } from '../config/index.js'; // Import config for logger name
+import { config } from '../../config/index.js';
 
 /**
  * Supported logging levels based on RFC 5424 Syslog severity levels used by MCP.
@@ -35,8 +35,12 @@ export type McpNotificationSender = (level: McpLogLevel, data: any, loggerName?:
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Project root assumed two levels above utils/
-const projectRoot = path.resolve(__dirname, '..', '..');
+// Calculate project root robustly (works from src/ or dist/)
+const isRunningFromDist = __dirname.includes(path.sep + 'dist' + path.sep);
+const levelsToGoUp = isRunningFromDist ? 3 : 2;
+const pathSegments = Array(levelsToGoUp).fill('..');
+const projectRoot = path.resolve(__dirname, ...pathSegments);
+
 const logsDir = path.join(projectRoot, 'logs');
 
 // Security: ensure logsDir is within projectRoot
@@ -312,7 +316,4 @@ class Logger {
 // Export singleton instance
 export const logger = Logger.getInstance();
 
-// Initialize logger on import (can be configured later via setLevel/setMcpNotificationSender)
-// Read initial level from env var or default to 'info'
-const initialLogLevel = (process.env.MCP_LOG_LEVEL as McpLogLevel) || 'info';
-logger.initialize(initialLogLevel);
+// REMOVED: Initialization now happens explicitly in config/index.ts after config is loaded.

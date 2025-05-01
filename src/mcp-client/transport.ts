@@ -1,10 +1,9 @@
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"; // Corrected Import HTTP transport name
-// ClientTransport union type is not directly exported; use specific types in union
-import { logger } from "../utils/logger.js";
-import { RequestContext, requestContextService } from "../utils/requestContext.js";
-import { getMcpServerConfig } from "./configLoader.js";
+// Import utils from the main barrel file (logger, RequestContext, requestContextService from ../utils/internal/*)
 import { BaseErrorCode, McpError } from "../types-global/errors.js";
+import { logger, RequestContext, requestContextService } from "../utils/index.js";
+import { getMcpServerConfig } from "./configLoader.js";
 
 /**
  * Configuration options for creating a StdioClientTransport.

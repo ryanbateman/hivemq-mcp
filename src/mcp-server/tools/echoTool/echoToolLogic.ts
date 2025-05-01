@@ -1,6 +1,6 @@
 import { z } from 'zod'; // Import z here
-import { logger } from "../../../utils/logger.js";
-import { RequestContext } from '../../../utils/requestContext.js'; // Import RequestContext type
+// Import utils from the main barrel file (logger from ../../../utils/internal/logger.js, RequestContext from ../../../utils/internal/requestContext.js)
+import { logger, type RequestContext } from "../../../utils/index.js";
 
 // --- Schema and Type Definitions (Moved from types.ts) ---
 

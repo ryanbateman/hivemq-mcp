@@ -1,5 +1,6 @@
 import { logger } from './logger.js';
-import { generateUUID } from './idGenerator.js'; // Import generateUUID
+// Import utils from the main barrel file (generateUUID from ../security/idGenerator.js)
+import { generateUUID } from '../index.js';
 // Removed incorrect import: import { RequestContext } from './rateLimiter.js';
 
 /**

@@ -1,6 +1,6 @@
-import { BaseErrorCode, McpError } from '../types-global/errors.js';
-import { logger } from './logger.js';
-import { RequestContext } from './requestContext.js'; // Import the correct RequestContext
+import { BaseErrorCode, McpError } from '../../types-global/errors.js';
+// Import utils from the main barrel file (logger, RequestContext from ../internal/*)
+import { logger, RequestContext } from '../index.js';
 
 /**
  * Rate limiting configuration options
@@ -56,12 +56,7 @@ export class RateLimiter {
     this.limits = new Map();
     this.startCleanupTimer();
     
-    // Log initialization
-    logger.debug('RateLimiter initialized', {
-      windowMs: this.config.windowMs,
-      maxRequests: this.config.maxRequests,
-      cleanupInterval: this.config.cleanupInterval
-    });
+    // Removed logger call from constructor to prevent logging before initialization
   }
 
   /**
