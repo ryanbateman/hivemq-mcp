@@ -1,12 +1,23 @@
 {
   "name": "mcp-ts-template",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "TypeScript template for building Model Context Protocol (MCP) servers & clients. A beginner-friendly, production-ready starting point with essential utilities, examples, and type safety. Copy this repo to kickstart your own MCP server and set your **vibe code** session up for success!",
   "main": "dist/index.js",
   "files": [
     "dist"
   ],
+  "bin": {
+    "mcp-ts-template": "./dist/index.js"
+  },
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyanheads/mcp-ts-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cyanheads/mcp-ts-template/issues"
+  },
+  "homepage": "https://github.com/cyanheads/mcp-ts-template#readme",
   "scripts": {
     "build": "tsc && node --loader ts-node/esm scripts/make-executable.ts dist/index.js",
     "start": "node dist/index.js",
