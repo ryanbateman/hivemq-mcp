@@ -256,13 +256,8 @@ export async function startHttpTransport(
       return; // Stop processing the request.
     }
     // Set standard security headers for allowed requests.
-    // Note: These are general secure defaults. Adjust CSP and Permissions-Policy based on specific needs.
     res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME type sniffing.
-    res.setHeader('Content-Security-Policy', "default-src 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests;"); // Restrict resource loading.
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains'); // Enforce HTTPS (effective only if served over HTTPS).
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); // Control referrer information.
-    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()'); // Disable potentially sensitive browser features by default.
-    // TODO: Consider if MCP_ALLOWED_ORIGINS needs regex support for more complex patterns (currently exact match).
     logger.debug('Middleware origin check passed, proceeding.', { ...context, origin: req.headers.origin });
     next(); // Origin is allowed, proceed to the specific route handler.
   });
