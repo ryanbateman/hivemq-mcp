@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { logger, McpLogLevel } from "../utils/logger.js"; // Import McpLogLevel and logger
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -57,21 +56,5 @@ export const logLevel = config.logLevel;
  */
 export const environment = config.environment;
 
-// Define valid MCP log levels based on the logger's type definition
-const validMcpLogLevels: McpLogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit', 'alert', 'emerg'];
-
-// Validate the configured log level
-let validatedMcpLogLevel: McpLogLevel = 'info'; // Default to 'info'
-if (validMcpLogLevels.includes(logLevel as McpLogLevel)) {
-  validatedMcpLogLevel = logLevel as McpLogLevel;
-} else {
-  // Silently default to 'info' if the configured level is invalid.
-  // The logger initialization message will show the actual level being used.
-}
-
-// Initialize the logger with the validated MCP level AFTER config is defined.
-logger.initialize(validatedMcpLogLevel);
-
-// Log initialization message using the logger itself (will go to file and potentially MCP)
-logger.info(`Logger initialized. MCP logging level: ${validatedMcpLogLevel}`);
-logger.debug("Configuration loaded successfully", { config }); // Log loaded config at debug level
+// REMOVED: Logger initialization and validation logic.
+// This will now happen at the very start of src/index.ts.

@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-01 13:32:04
+Generated on: 2025-05-01 15:21:23
 
 
 ```
@@ -8,7 +8,6 @@ mcp-ts-template
 ├── backups
 ├── docs
     └── tree.md
-├── logs
 ├── scripts
     ├── clean.ts
     ├── make-executable.ts
@@ -34,6 +33,9 @@ mcp-ts-template
     │   │   │   ├── echoToolLogic.ts
     │   │   │   ├── index.ts
     │   │   │   └── registration.ts
+    │   ├── transports
+    │   │   ├── httpTransport.ts
+    │   │   └── stdioTransport.ts
     │   ├── .DS_Store
     │   └── server.ts
     ├── types-global
@@ -41,15 +43,24 @@ mcp-ts-template
     │   ├── mcp.ts
     │   └── tool.ts
     ├── utils
-    │   ├── errorHandler.ts
-    │   ├── idGenerator.ts
-    │   ├── index.ts
-    │   ├── jsonParser.ts
-    │   ├── logger.ts
-    │   ├── rateLimiter.ts
-    │   ├── requestContext.ts
-    │   ├── sanitization.ts
-    │   └── tokenCounter.ts
+    │   ├── internal
+    │   │   ├── errorHandler.ts
+    │   │   ├── index.ts
+    │   │   ├── logger.ts
+    │   │   └── requestContext.ts
+    │   ├── metrics
+    │   │   ├── index.ts
+    │   │   └── tokenCounter.ts
+    │   ├── parsing
+    │   │   ├── dateParser.ts
+    │   │   ├── index.ts
+    │   │   └── jsonParser.ts
+    │   ├── security
+    │   │   ├── idGenerator.ts
+    │   │   ├── index.ts
+    │   │   ├── rateLimiter.ts
+    │   │   └── sanitization.ts
+    │   └── index.ts
     ├── .DS_Store
     └── index.ts
 ├── .clinerules

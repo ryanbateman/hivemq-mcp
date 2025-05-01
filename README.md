@@ -24,7 +24,7 @@ Copy this repo to kickstart your own MCP server or integrate MCP client capabili
 
 ## 📋 Table of Contents
 
-[Overview](#overview) | [Explore More MCP Resources](#explore-more-mcp-resources) | [Features](#features) | [Installation](#installation) | [Configuration](#configuration) | [Project Structure](#project-structure) | [Tool & Resource Documentation](#tool--resource-documentation) | [Development Guidelines](#development-guidelines) | [License](#license)
+[Overview](#overview) | [Explore More MCP Resources](#explore-more-mcp-resources) | [Features](#features) | [Installation](#installation) | [Configuration](#configuration) | [Project Structure](#project-structure) | [Development Guidelines](#development-guidelines) | [License](#license)
 
 ## Overview
 
@@ -38,125 +38,36 @@ Model Context Protocol (MCP) is a framework that enables AI systems to interact 
 
 This template gives you a head start in building MCP servers that can be used by AI systems to extend their capabilities, and provides a client implementation for connecting to other MCP servers.
 
-### Architecture & Components
-
-The template follows a modular architecture designed for clarity and extensibility:
-
-<details>
-<summary>Click to expand architecture diagram</summary>
-
-```mermaid
-flowchart TB
-    subgraph API["API Layer"]
-        direction LR
-        MCP["MCP Protocol"]
-        Val["Validation"]
-        San["Sanitization"]
-
-        MCP --> Val --> San
-    end
-
-    subgraph Core["Core Components"]
-        direction LR
-        Config["Configuration"]
-        Logger["Logging System"]
-        Error["Error Handling"]
-        Server["MCP Server"]
-        Client["MCP Client"]
-
-        Config --> Server
-        Config --> Client
-        Logger --> Server
-        Logger --> Client
-        Error --> Server
-        Error --> Client
-    end
-
-    subgraph Implementation["Implementation Layer"]
-        direction LR
-        Tool["Tools (Server)"]
-        Resource["Resources (Server)"]
-        Util["Utilities"]
-
-        Tool --> Server
-        Resource --> Server
-        Util --> Tool
-        Util --> Resource
-        Util --> Client
-    end
-
-    San --> Config
-    San --> Server
-    San --> Client
-
-    classDef layer fill:#2d3748,stroke:#4299e1,stroke-width:3px,rx:5,color:#fff
-    classDef component fill:#1a202c,stroke:#a0aec0,stroke-width:2px,rx:3,color:#fff
-    class API,Core,Implementation layer
-    class MCP,Val,San,Config,Logger,Error,Server,Client,Tool,Resource,Util component
-```
-
-</details>
-
-Key Components:
-
-- **Configuration**: Environment-aware settings with Zod validation (`src/config/`, `src/mcp-client/configLoader.ts`).
-- **Logging**: Structured, context-aware logging with redaction (`src/utils/logger.ts`).
-- **Error Handling**: Centralized processing with consistent patterns (`src/utils/errorHandler.ts`).
-- **MCP Server**: Implements the protocol via `stdio` or `http` (SSE), includes Echo example tool & resource implementations (`src/mcp-server/`).
-- **MCP Client**: Connects to external servers defined in `mcp-config.json` (`src/mcp-client/`).
-- **HTTP Transport**: Express-based server with SSE, session management, CORS, and port conflict retries.
-- **Validation/Sanitization**: Uses `validator`, `sanitize-html`, and `zod` (`src/utils/sanitization.ts`).
-- **Utilities**: Common helpers for IDs, rate limiting, etc. (`src/utils/`).
-
-## Explore More MCP Resources
-
-For a broader collection of MCP guides, utilities, and diverse server implementations (including Perplexity, Atlas, Filesystem, Obsidian, Git, GitHub, Ntfy, and more), check out the companion repository:
-
-➡️ **[cyanheads/model-context-protocol-resources](https://github.com/cyanheads/model-context-protocol-resources)**
-
-This repository complements the template by providing in-depth guides and helpful resources based on my real-world usage and learning of MCP.
-
 ## Features
 
-| Category           | Feature                         | Description                                                                     |
-| ------------------ | ------------------------------- | ------------------------------------------------------------------------------- |
-| **Core Utility**   | Logging                         | Configurable logging with file rotation and sensitive data redaction.           |
-|                    | Error Handling                  | Pattern-based error classification and standardized reporting.                  |
-|                    | ID Generation                   | Secure unique identifier creation with prefix support.                          |
-|                    | Rate Limiting                   | Request throttling to prevent API abuse.                                        |
-|                    | Request Context                 | Request tracking and correlation across operations.                             |
-|                    | Sanitization                    | Input validation and cleaning using `validator` and `sanitize-html`.            |
-| **Type Safety**    | Global Types                    | Shared type definitions for consistent interfaces.                              |
-|                    | Error Types                     | Standardized error codes and structures.                                        |
-|                    | MCP Protocol Types              | Type definitions for the MCP protocol (leveraging `@modelcontextprotocol/sdk`). |
-|                    | Tool Types                      | Interfaces for tool registration and configuration.                             |
-|                    | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.     |
-| **Error Handling** | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                      |
-|                    | Consistent Formatting           | Standardized error responses with additional context.                           |
-|                    | Error Mapping                   | Custom error transformation for domain-specific errors.                         |
-|                    | Safe Try/Catch Patterns         | Centralized error processing helpers (`ErrorHandler.tryCatch`).                 |
-|                    | Client/Transport Error Handling | Specific handlers for MCP client and transport errors.                          |
-| **Security**       | Input Validation                | Using `validator` and `zod` for various data type checks.                       |
-|                    | Input Sanitization              | Using `sanitize-html` to prevent injection attacks.                             |
-|                    | Parameter Bounds                | Enforced limits within sanitization logic to prevent abuse.                     |
-|                    | Sensitive Data Redaction        | Automatic redaction in logs.                                                    |
-|                    | Configuration Fallback          | Safely falls back to `mcp-config.json.example` if primary config is missing.    |
+This template includes a range of features designed for building robust and maintainable MCP applications:
 
-| **Server** | [Echo Tool](src/mcp-server/tools/echoTool/) | Demonstrates tool registration, Zod validation, logic, and response formatting. |
-| | [Echo Resource](src/mcp-server/resources/echoResource/) | Demonstrates resource registration, URI handling, and response formatting. |
-| **Client** | [MCP Client Module](src/mcp-client/) | Robust client for connecting to/managing MCP servers defined in `mcp-config.json`. |
-
-### MCP Client Module
-
-Located in `src/mcp-client/`, this module provides functionality to connect to and manage external MCP servers defined in `mcp-config.json`.
-
-| Feature                 | Description                                                                                                                       | Key File(s)                                                  |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| **Connection Mgmt**     | Functions `connectMcpClient`, `disconnectMcpClient`, `disconnectAllMcpClients` handle connection lifecycle.                       | `client.ts`                                                  |
-| **Config Loading**      | Uses Zod to validate `mcp-config.json` (or `.example`) before connection attempts.                                                | `configLoader.ts`                                            |
-| **Transport Handling**  | Dynamically creates `StdioClientTransport` or `StreamableHTTPClientTransport` based on config. Handles env var merging for stdio. | `transport.ts`                                               |
-| **Client Capabilities** | Declares comprehensive client capabilities according to the MCP specification.                                                    | `client.ts` (within `createMcpClient` options)               |
-| **Error Handling**      | Includes specific error handling for client connection and transport issues.                                                      | `client.ts`, `transport.ts` (integrated with `ErrorHandler`) |
+| Category             | Feature                         | Description                                                                                                | Location(s)                                     |
+| -------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Core Components**  | MCP Server                      | Core server logic, tool/resource registration, transport handling. Includes Echo Tool & Resource examples. | `src/mcp-server/`                               |
+|                      | MCP Client                      | Logic for connecting to external MCP servers defined in `mcp-config.json`.                                 | `src/mcp-client/`                               |
+|                      | Configuration                   | Environment-aware settings with Zod validation.                                                            | `src/config/`, `src/mcp-client/configLoader.ts` |
+|                      | HTTP Transport                  | Express-based server with SSE, session management, CORS, port retries.                                     | `src/mcp-server/transports/httpTransport.ts`    |
+|                      | Stdio Transport                 | Handles MCP communication over standard input/output.                                                      | `src/mcp-server/transports/stdioTransport.ts`   |
+| **Utilities (Core)** | Logger                          | Structured, context-aware logging (files & MCP notifications).                                             | `src/utils/internal/logger.ts`                  |
+|                      | ErrorHandler                    | Centralized error processing, classification, and logging.                                                 | `src/utils/internal/errorHandler.ts`            |
+|                      | RequestContext                  | Request/operation tracking and correlation.                                                                | `src/utils/internal/requestContext.ts`          |
+| **Utilities (Metrics)**| TokenCounter                    | Estimates token counts using `tiktoken`.                                                                   | `src/utils/metrics/tokenCounter.ts`             |
+| **Utilities (Parsing)**| DateParser                      | Parses natural language date strings using `chrono-node`.                                                  | `src/utils/parsing/dateParser.ts`               |
+|                      | JsonParser                      | Parses potentially partial JSON, handles `<think>` blocks.                                                 | `src/utils/parsing/jsonParser.ts`               |
+| **Utilities (Security)**| IdGenerator                     | Generates unique IDs (prefixed or UUIDs).                                                                  | `src/utils/security/idGenerator.ts`             |
+|                      | RateLimiter                     | Request throttling based on keys.                                                                          | `src/utils/security/rateLimiter.ts`             |
+|                      | Sanitization                    | Input validation/cleaning (HTML, paths, URLs, numbers, JSON) & log redaction (`validator`, `sanitize-html`). | `src/utils/security/sanitization.ts`            |
+| **Type Safety**      | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP, Tools).                              | `src/types-global/`                             |
+|                      | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.                                | Throughout (`config`, `mcp-client`, tools, etc.) |
+| **Error Handling**   | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                 | `src/utils/internal/errorHandler.ts`            |
+|                      | Consistent Formatting           | Standardized error responses with additional context.                                                      | `src/utils/internal/errorHandler.ts`            |
+|                      | Safe Try/Catch Patterns         | Centralized error processing helpers (`ErrorHandler.tryCatch`).                                            | `src/utils/internal/errorHandler.ts`            |
+|                      | Client/Transport Error Handling | Specific handlers for MCP client and transport errors.                                                     | `src/mcp-client/client.ts`, `transport.ts`      |
+| **Security**         | Input Validation                | Using `validator` and `zod` for various data type checks.                                                  | `src/utils/security/sanitization.ts`, etc.      |
+|                      | Input Sanitization              | Using `sanitize-html` to prevent injection attacks.                                                        | `src/utils/security/sanitization.ts`            |
+|                      | Sensitive Data Redaction        | Automatic redaction in logs.                                                                               | `src/utils/security/sanitization.ts`            |
+|                      | Configuration Fallback          | Safely falls back to `mcp-config.json.example` if primary client config is missing.                        | `src/mcp-client/configLoader.ts`                |
 
 ## Installation
 
@@ -286,7 +197,7 @@ The codebase follows a modular structure within the `src/` directory:
   - `resources/`: Resource implementations.
   - `tools/`: Tool implementations.
 - `types-global/`: TypeScript definitions shared across the project.
-- `utils/`: Common utility functions (logging, error handling, etc.).
+- `utils/`: Common utility functions, organized into subdirectories (`internal`, `metrics`, `parsing`, `security`) and exported via `index.ts`.
 
 For a detailed, up-to-date view of the project structure, run the following command:
 
@@ -295,26 +206,6 @@ npm run tree
 ```
 
 This command executes the `scripts/tree.ts` script, which generates a tree representation of the current project layout.
-
-## Tool & Resource Documentation
-
-_(This section describes the tools and resources provided by **this template's server**)_
-
-### Tools
-
-| Tool          | Description                                                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Echo Tool** | Formats and echoes messages with various options. Demonstrates input validation, error handling, and proper response formatting. |
-
-See the [Echo Tool implementation](src/mcp-server/tools/echoTool/) for detailed usage examples and implementation details.
-
-### Resources
-
-| Resource          | Description                                                                                                                            |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Echo Resource** | Returns echo messages based on input parameters. Demonstrates resource registration, URI handling, and consistent response formatting. |
-
-See the [Echo Resource implementation](src/mcp-server/resources/echoResource/) for detailed usage examples and implementation details.
 
 ## Development Guidelines
 
@@ -384,6 +275,14 @@ Example `registration.ts` structure
 // ...
 // await registerMyNewResource(server);
 ```
+
+## Explore More MCP Resources
+
+For a broader collection of MCP guides, utilities, and diverse server implementations (including Perplexity, Atlas, Filesystem, Obsidian, Git, GitHub, Ntfy, and more), check out the companion repository:
+
+➡️ **[cyanheads/model-context-protocol-resources](https://github.com/cyanheads/model-context-protocol-resources)**
+
+This repository complements the template by providing in-depth guides and helpful resources based on my real-world usage and learning of MCP.
 
 ## License
 

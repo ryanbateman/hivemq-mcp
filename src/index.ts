@@ -1,10 +1,37 @@
 #!/usr/bin/env node
+
+// --- Logger Initialization (Must happen FIRST) ---
+// Import logger and types directly from the source file to avoid potential circular dependencies via barrel files during early init
+import { logger, McpLogLevel } from "./utils/internal/logger.js";
+
+// Define valid MCP log levels based on the logger's type definition
+const validMcpLogLevels: McpLogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit', 'alert', 'emerg'];
+// Read initial level directly from env var or default to 'info'
+const initialLogLevelEnv = process.env.MCP_LOG_LEVEL || 'info';
+// Validate the configured log level
+let validatedMcpLogLevel: McpLogLevel = 'info'; // Default to 'info'
+if (validMcpLogLevels.includes(initialLogLevelEnv as McpLogLevel)) {
+  validatedMcpLogLevel = initialLogLevelEnv as McpLogLevel;
+} else {
+  // Use console.warn here as logger isn't initialized yet
+  console.warn(`Invalid MCP_LOG_LEVEL "${initialLogLevelEnv}" provided. Defaulting to "info".`);
+}
+// Initialize the logger with the validated MCP level.
+logger.initialize(validatedMcpLogLevel);
+// Log initialization message using the logger itself (will go to file)
+logger.info(`Logger initialized early in src/index.ts. MCP logging level: ${validatedMcpLogLevel}`);
+// --- End Logger Initialization ---
+
+
+// --- Now import other modules ---
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'; // Import McpServer type
-import { config, environment } from "./config/index.js";
+import { config, environment } from "./config/index.js"; // Config can now safely import logger if needed (it doesn't directly, but its dependencies might)
 import { initializeAndStartServer } from "./mcp-server/server.js"; // Updated import
-import { logger } from "./utils/logger.js";
-// Import the service instance instead of the standalone function
-import { requestContextService } from "./utils/requestContext.js";
+// Import requestContextService from the main barrel file (logger is already imported above)
+import { requestContextService } from "./utils/index.js";
+
+// Log that config is loaded (this was previously in config/index.ts)
+logger.debug("Configuration loaded successfully", { config });
 
 /**
  * The main MCP server instance.
