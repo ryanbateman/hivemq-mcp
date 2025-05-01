@@ -1,6 +1,6 @@
 {
   "name": "mcp-ts-template",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "TypeScript template for building Model Context Protocol (MCP) servers & clients. A beginner-friendly, production-ready starting point with essential utilities, examples, and type safety. Copy this repo to kickstart your own MCP server and set your **vibe code** session up for success!",
   "main": "dist/index.js",
   "files": [
@@ -21,9 +21,10 @@
   "scripts": {
     "build": "tsc && node --loader ts-node/esm scripts/make-executable.ts dist/index.js",
     "start": "node dist/index.js",
-    "start:stdio": "LOG_LEVEL=debug MCP_TRANSPORT_TYPE=stdio node dist/index.js",
-    "start:http": "LOG_LEVEL=debug MCP_TRANSPORT_TYPE=http node dist/index.js",
+    "start:stdio": "MCP_LOG_LEVEL=debug MCP_TRANSPORT_TYPE=stdio node dist/index.js",
+    "start:http": "MCP_LOG_LEVEL=debug MCP_TRANSPORT_TYPE=http node dist/index.js",
     "rebuild": "ts-node --esm scripts/clean.ts && npm run build",
+    "docs:generate": "typedoc",
     "tree": "ts-node --esm scripts/tree.ts"
   },
   "dependencies": {
@@ -60,6 +61,7 @@
   "author": "Casey Hand @cyanheads",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/express": "^5.0.1"
+    "@types/express": "^5.0.1",
+    "typedoc": "^0.28.3"
   }
 }

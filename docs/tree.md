@@ -1,12 +1,13 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-01 15:21:23
+Generated on: 2025-05-01 19:20:02
 
 
 ```
 mcp-ts-template
 ├── backups
 ├── docs
+    ├── .DS_Store
     └── tree.md
 ├── scripts
     ├── clean.ts
@@ -39,9 +40,7 @@ mcp-ts-template
     │   ├── .DS_Store
     │   └── server.ts
     ├── types-global
-    │   ├── errors.ts
-    │   ├── mcp.ts
-    │   └── tool.ts
+    │   └── errors.ts
     ├── utils
     │   ├── internal
     │   │   ├── errorHandler.ts
@@ -72,7 +71,8 @@ mcp-ts-template
 ├── package.json
 ├── README.md
 ├── repomix.config.json
-└── tsconfig.json
+├── tsconfig.json
+└── typedoc.json
 
 ```
 
