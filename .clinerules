@@ -370,6 +370,34 @@ async function calculateTokens() {
 - **Key Files**:
   - `src/utils/metrics/tokenCounter.ts`: Provides `countTokens` and `countChatTokens`.
 
+## Utility Scripts (`scripts/`)
+
+This project includes several utility scripts located in the `scripts/` directory to aid development:
+
+### 1. Clean (`scripts/clean.ts`)
+
+- **Purpose**: Removes build artifacts and temporary directories.
+- **Usage**: `npm run rebuild` (uses this script) or `ts-node --esm scripts/clean.ts [dir1] [dir2]...`
+- **Default Targets**: `dist`, `logs`.
+
+### 2. Make Executable (`scripts/make-executable.ts`)
+
+- **Purpose**: Sets executable permissions (`chmod +x`) on specified files (Unix-like systems only). Useful for CLI entry points after building.
+- **Usage**: `npm run build` (uses this script) or `ts-node --esm scripts/make-executable.ts [file1] [file2]...`
+- **Default Target**: `dist/index.js`.
+
+### 3. Generate Tree (`scripts/tree.ts`)
+
+- **Purpose**: Creates a visual directory tree markdown file (`docs/tree.md` by default), respecting `.gitignore`.
+- **Usage**: `npm run tree` or `ts-node --esm scripts/tree.ts [output-path] [--depth=<number>]`
+
+### 4. Fetch OpenAPI Spec (`scripts/fetch-openapi-spec.ts`)
+
+- **Purpose**: Fetches an OpenAPI specification (YAML/JSON) from a URL, attempts fallbacks (`/openapi.yaml`, `/openapi.json`), parses it, and saves both YAML and JSON versions locally.
+- **Usage**: `npm run fetch-spec <url> <output-base-path>` or `ts-node --esm scripts/fetch-openapi-spec.ts <url> <output-base-path>`
+- **Example**: `npm run fetch-spec https://petstore3.swagger.io/api/v3 docs/api/petstore_v3`
+- **Dependencies**: `axios`, `js-yaml`.
+
 ## Adding New Features
 
 ### Adding a Tool

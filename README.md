@@ -2,7 +2,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.3-blue.svg)](https://www.typescriptlang.org/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP_SDK-1.10.2-green.svg)](https://modelcontextprotocol.io/) <!-- Clarified SDK version -->
-[![Version](https://img.shields.io/badge/Version-1.1.1-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.1.2-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
@@ -21,6 +21,7 @@ Whether you're creating a new MCP server to extend an AI's capabilities or integ
 - **🔌 MCP Server Example**: A functional server with an example [Echo Tool](src/mcp-server/tools/echoTool/index.ts) and [Echo Resource](src/mcp-server/resources/echoResource/index.ts). Supports both `stdio` and `http` (SSE) transports.
 - **💻 MCP Client Example**: A working client ([src/mcp-client/](src/mcp-client/index.ts)) ready to connect to other MCP servers via `mcp-config.json`.
 - **📚 Clear Documentation**: Comprehensive guides on usage, configuration, and extension.
+- **🛠️ Handy Utility Scripts**: Includes scripts for cleaning builds, making files executable, generating directory trees, and fetching OpenAPI specs ([scripts/](scripts/)).
 - **🤖 Agent Ready**: Comes with a [.clinerules](.clinerules) file – a developer cheatsheet perfect for LLM coding agents, detailing patterns, file locations, and usage snippets. (Remember to update it as you customize!)
 
 _For a deep dive into all features, see the [Detailed Features Table](#detailed-features-table) below._
@@ -200,8 +201,12 @@ Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Conte
 | **Error Handling**       | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                   | `src/utils/internal/errorHandler.ts`             |
 |                          | Consistent Formatting           | Standardized error responses with additional context.                                                        | `src/utils/internal/errorHandler.ts`             |
 |                          | Safe Try/Catch Patterns         | Centralized error processing helpers (`ErrorHandler.tryCatch`).                                              | `src/utils/internal/errorHandler.ts`             |
-|                          | Client/Transport Error Handling | Specific handlers for MCP client and transport errors.                                                       | `src/mcp-client/client.ts`, `transport.ts`       |
+|                          | Client/Transport Error Handling | Specific handlers for MCP client and transport error handling.                                               | `src/mcp-client/client.ts`, `transport.ts`       |
 | **Security**             | Input Validation                | Using `validator` and `zod` for various data type checks.                                                    | `src/utils/security/sanitization.ts`, etc.       |
 |                          | Input Sanitization              | Using `sanitize-html` to prevent injection attacks.                                                          | `src/utils/security/sanitization.ts`             |
 |                          | Sensitive Data Redaction        | Automatic redaction in logs.                                                                                 | `src/utils/security/sanitization.ts`             |
 |                          | Configuration Fallback          | Safely falls back to `mcp-config.json.example` if primary client config is missing.                          | `src/mcp-client/configLoader.ts`                 |
+| **Scripts**              | Clean Script                    | Removes `dist` and `logs` directories (or custom targets).                                                   | `scripts/clean.ts`                               |
+|                          | Make Executable Script          | Sets executable permissions (`chmod +x`) on specified files (Unix-like only).                                | `scripts/make-executable.ts`                     |
+|                          | Tree Script                     | Generates a directory structure tree, respecting `.gitignore`.                                               | `scripts/tree.ts`                                |
+|                          | Fetch OpenAPI Spec Script       | Fetches an OpenAPI spec (YAML/JSON) from a URL with fallbacks, saves locally.                                | `scripts/fetch-openapi-spec.ts`                  |
