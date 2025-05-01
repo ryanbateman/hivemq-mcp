@@ -80,9 +80,6 @@ const requestContextServiceInstance = {
   // generateSecureRandomString function removed as it was unused and redundant
 };
 
-// Initialize logger message
-logger.debug('RequestContext service initialized');
-
 // Export the instance directly
 export const requestContextService = requestContextServiceInstance;
 

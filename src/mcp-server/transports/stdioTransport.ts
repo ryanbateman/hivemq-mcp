@@ -1,5 +1,5 @@
 /**
- * @fileoverview Handles the setup and connection for the Stdio MCP transport.
+ * Handles the setup and connection for the Stdio MCP transport.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -9,18 +9,20 @@ import { ErrorHandler, logger } from '../../utils/index.js';
 
 /**
  * Connects a given McpServer instance to the Stdio transport.
- * Reads from stdin and writes to stdout.
+ * Reads from stdin and writes to stdout. (Asynchronous)
  *
- * @async
  * @param {McpServer} server - The McpServer instance to connect.
  * @param {Record<string, any>} context - Logging context.
  * @returns {Promise<void>} A promise that resolves when the connection is established.
  * @throws {Error} Throws an error if the connection fails.
  */
 export async function connectStdioTransport(server: McpServer, context: Record<string, any>): Promise<void> {
+  logger.debug('Attempting to connect stdio transport...', context);
   try {
+    logger.debug('Creating StdioServerTransport instance...', context);
     // Create the stdio transport, which reads from stdin and writes to stdout.
     const transport = new StdioServerTransport();
+    logger.debug('Connecting McpServer to StdioServerTransport...', context);
     // Connect the server logic to the stdio transport.
     await server.connect(transport);
     logger.info('MCP Server connected via stdio transport', context);
