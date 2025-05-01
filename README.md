@@ -1,8 +1,8 @@
 # MCP TypeScript Template
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.2-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.3-blue.svg)](https://www.typescriptlang.org/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-1.10.2-green.svg)](https://modelcontextprotocol.io/)
-[![Version](https://img.shields.io/badge/Version-1.0.5-blue.svg)](./CHANGELOG.md) <!-- Link to Changelog -->
+[![Version](https://img.shields.io/badge/Version-1.0.6-blue.svg)](./CHANGELOG.md) <!-- Link to Changelog -->
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
@@ -11,43 +11,20 @@ A beginner-friendly foundation for building [Model Context Protocol (MCP)](https
 
 Copy this repo to kickstart your own MCP server or integrate MCP client capabilities into your application!
 
-## Using this template as your repo will get you:
+**This template provides:**
 
-- **Utilities**: A set of reusable utilities for logging, error handling, ID generation, rate limiting, and request context management.
-- **Type Safety**: Strong typing with TypeScript to catch errors at compile time.
-- **Security**: Built-in security features to protect against common vulnerabilities.
-- **Error Handling**: A robust error handling system that categorizes and formats errors consistently.
-- **Documentation**: Comprehensive documentation for tools and resources, including usage examples and implementation details.
-- **Example Implementations**: Working examples of [echo_message (tool)](src/mcp-server/tools/echoTool/) and [echo://hello (resource)](src/mcp-server/resources/echoResource/) for the server, and a functional client setup.
-- **MCP Client**: A robust client implementation ([src/mcp-client/](src/mcp-client/)) for connecting to and interacting with MCP servers defined in a configuration file.
+- **🚀 Production-Ready Utilities**: Logging, error handling, ID generation, rate limiting, request context, sanitization.
+- **🔒 Type Safety & Security**: TypeScript for compile-time checks and built-in security utilities.
+- **⚙️ Robust Error Handling & Logging**: Consistent error categorization and logging.
+- **📚 Clear Documentation**: Guidance on usage, configuration, and extension.
+- **✨ MCP Server**: Includes an [Echo Tool](src/mcp-server/tools/echoTool/) and [Echo Resource](src/mcp-server/resources/echoResource/) implementation.
+- **🔌 MCP Client**: A functional client ([src/mcp-client/](src/mcp-client/)) to connect to other MCP servers. Configuration via `mcp-config.json`.
 
-> **.clinerules**: This repository includes a [.clinerules](.clinerules) file that serves as a developer cheat sheet for your LLM coding agent with quick reference for the codebase patterns, file locations, and code snippets. When copying this template for your own project, be sure to update the cheat sheet to reflect your modifications and additions.
+> **🤖 Agent Ready**: Includes a [.clinerules](.clinerules) file – a developer cheat sheet for your LLM coding agent with quick references for codebase patterns, file locations, and code snippets. Remember to update it when you customize the template!
 
-## Table of Contents
+## 📋 Table of Contents
 
-- [Overview](#overview)
-  - [What is Model Context Protocol?](#what-is-model-context-protocol)
-  - [Architecture & Components](#architecture--components)
-- [Features](#features)
-  - [Core Utilities](#core-utilities)
-  - [Type Safety](#type-safety)
-  - [Error Handling](#error-handling)
-  - [Security](#security)
-  - [Example Implementations](#example-implementations)
-  - [MCP Client Implementation](#mcp-client-implementation)
-- [Installation](#installation)
-- [Configuration](#configuration)
-  - [Server Configuration](#server-configuration)
-  - [Client Configuration](#client-configuration)
-- [Project Structure](#project-structure)
-- [Tool & Resource Documentation](#tool--resource-documentation)
-  - [Tools](#tools)
-  - [Resources](#resources)
-- [Development Guidelines](#development-guidelines)
-  - [Adding a New Tool](#adding-a-new-tool)
-  - [Adding a New Resource](#adding-a-new-resource)
-- [Future Plans](#future-plans)
-- [License](#license)
+[Overview](#overview) | [Explore More MCP Resources](#explore-more-mcp-resources) | [Features](#features) | [Installation](#installation) | [Configuration](#configuration) | [Project Structure](#project-structure) | [Tool & Resource Documentation](#tool--resource-documentation) | [Development Guidelines](#development-guidelines) | [License](#license)
 
 ## Overview
 
@@ -120,16 +97,16 @@ flowchart TB
 
 </details>
 
-Core Components:
+Key Components:
 
-- **Configuration System**: Environment-aware configuration with validation for both server and client settings.
-- **Logging System**: Structured logging with sensitive data redaction.
-- **Error Handling**: Centralized error processing with consistent patterns.
-- **MCP Server**: Protocol implementation supporting both `stdio` and `http` transports.
-- **MCP Client**: Client implementation for connecting to MCP servers via `stdio` or `http`, managed through `mcp-config.json`.
-- **HTTP Transport**: Express-based server using Server-Sent Events (SSE) for streaming, session management, and configurable CORS. Includes port conflict retry logic.
-- **Validation Layer**: Input validation and sanitization using `validator`, `sanitize-html`, and `zod`.
-- **Utilities**: Reusable utility functions for common operations.
+- **Configuration**: Environment-aware settings with Zod validation (`src/config/`, `src/mcp-client/configLoader.ts`).
+- **Logging**: Structured, context-aware logging with redaction (`src/utils/logger.ts`).
+- **Error Handling**: Centralized processing with consistent patterns (`src/utils/errorHandler.ts`).
+- **MCP Server**: Implements the protocol via `stdio` or `http` (SSE), includes Echo example tool & resource implementations (`src/mcp-server/`).
+- **MCP Client**: Connects to external servers defined in `mcp-config.json` (`src/mcp-client/`).
+- **HTTP Transport**: Express-based server with SSE, session management, CORS, and port conflict retries.
+- **Validation/Sanitization**: Uses `validator`, `sanitize-html`, and `zod` (`src/utils/sanitization.ts`).
+- **Utilities**: Common helpers for IDs, rate limiting, etc. (`src/utils/`).
 
 ## Explore More MCP Resources
 
@@ -141,53 +118,45 @@ This repository complements the template by providing in-depth guides and helpfu
 
 ## Features
 
-### Core Utilities
+| Category           | Feature                         | Description                                                                     |
+| ------------------ | ------------------------------- | ------------------------------------------------------------------------------- |
+| **Core Utility**   | Logging                         | Configurable logging with file rotation and sensitive data redaction.           |
+|                    | Error Handling                  | Pattern-based error classification and standardized reporting.                  |
+|                    | ID Generation                   | Secure unique identifier creation with prefix support.                          |
+|                    | Rate Limiting                   | Request throttling to prevent API abuse.                                        |
+|                    | Request Context                 | Request tracking and correlation across operations.                             |
+|                    | Sanitization                    | Input validation and cleaning using `validator` and `sanitize-html`.            |
+| **Type Safety**    | Global Types                    | Shared type definitions for consistent interfaces.                              |
+|                    | Error Types                     | Standardized error codes and structures.                                        |
+|                    | MCP Protocol Types              | Type definitions for the MCP protocol (leveraging `@modelcontextprotocol/sdk`). |
+|                    | Tool Types                      | Interfaces for tool registration and configuration.                             |
+|                    | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.     |
+| **Error Handling** | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                      |
+|                    | Consistent Formatting           | Standardized error responses with additional context.                           |
+|                    | Error Mapping                   | Custom error transformation for domain-specific errors.                         |
+|                    | Safe Try/Catch Patterns         | Centralized error processing helpers (`ErrorHandler.tryCatch`).                 |
+|                    | Client/Transport Error Handling | Specific handlers for MCP client and transport errors.                          |
+| **Security**       | Input Validation                | Using `validator` and `zod` for various data type checks.                       |
+|                    | Input Sanitization              | Using `sanitize-html` to prevent injection attacks.                             |
+|                    | Parameter Bounds                | Enforced limits within sanitization logic to prevent abuse.                     |
+|                    | Sensitive Data Redaction        | Automatic redaction in logs.                                                    |
+|                    | Configuration Fallback          | Safely falls back to `mcp-config.json.example` if primary config is missing.    |
 
-- **Logging**: Configurable logging with file rotation and sensitive data redaction.
-- **Error Handling**: Pattern-based error classification and standardized reporting.
-- **ID Generation**: Secure unique identifier creation with prefix support.
-- **Rate Limiting**: Request throttling to prevent API abuse.
-- **Request Context**: Request tracking and correlation across operations.
-- **Sanitization**: Input validation and cleaning using `validator` and `sanitize-html`.
+| **Server** | [Echo Tool](src/mcp-server/tools/echoTool/) | Demonstrates tool registration, Zod validation, logic, and response formatting. |
+| | [Echo Resource](src/mcp-server/resources/echoResource/) | Demonstrates resource registration, URI handling, and response formatting. |
+| **Client** | [MCP Client Module](src/mcp-client/) | Robust client for connecting to/managing MCP servers defined in `mcp-config.json`. |
 
-### Type Safety
+### MCP Client Module
 
-- **Global Types**: Shared type definitions for consistent interfaces.
-- **Error Types**: Standardized error codes and structures.
-- **MCP Protocol Types**: Type definitions for the MCP protocol (leveraging `@modelcontextprotocol/sdk`).
-- **Tool Types**: Interfaces for tool registration and configuration.
-- **Zod Schemas**: Used for robust validation of configuration files and tool/resource inputs.
+Located in `src/mcp-client/`, this module provides functionality to connect to and manage external MCP servers defined in `mcp-config.json`.
 
-### Error Handling
-
-- **Pattern-Based Classification**: Automatically categorize errors based on message patterns.
-- **Consistent Formatting**: Standardized error responses with additional context.
-- **Error Mapping**: Custom error transformation for domain-specific errors.
-- **Safe Try/Catch Patterns**: Centralized error processing helpers (`ErrorHandler.tryCatch`).
-- **Client/Transport Error Handling**: Specific handlers for MCP client and transport errors.
-
-### Security
-
-- **Input Validation**: Using `validator` and `zod` for various data type checks.
-- **Input Sanitization**: Using `sanitize-html` to prevent injection attacks.
-- **Parameter Bounds**: Enforced limits within sanitization logic to prevent abuse.
-- **Sensitive Data Redaction**: Automatic redaction in logs.
-- **Configuration Fallback**: Safely falls back to `mcp-config.json.example` if primary config is missing.
-
-### Example Implementations
-
-- **[Echo Tool](src/mcp-server/tools/echoTool/)**: Complete example of a server-side tool implementation including registration.
-- **[Echo Resource](src/mcp-server/resources/echoResource/)**: Complete example of a server-side resource implementation including registration.
-
-### MCP Client Implementation
-
-Located in `src/mcp-client/`, this module provides functionality to connect to and manage MCP servers defined in `mcp-config.json`.
-
-- **Connection Management**: Functions `connectMcpClient`, `disconnectMcpClient`, and `disconnectAllMcpClients` handle the lifecycle of client connections.
-- **Configuration Loading**: `configLoader.ts` uses Zod to validate `mcp-config.json` (or `.example`), ensuring server definitions are correct before attempting connection.
-- **Transport Handling**: `transport.ts` dynamically creates the appropriate transport (`StdioClientTransport` or `StreamableHTTPClientTransport`) based on the `transportType` specified in the config. Handles environment variable merging for stdio transports.
-- **Client Capabilities**: Declares comprehensive client capabilities according to the MCP specification.
-- **Robust Error Handling**: Includes specific error handling for client connection and transport issues.
+| Feature                 | Description                                                                                                                       | Key File(s)                                                  |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Connection Mgmt**     | Functions `connectMcpClient`, `disconnectMcpClient`, `disconnectAllMcpClients` handle connection lifecycle.                       | `client.ts`                                                  |
+| **Config Loading**      | Uses Zod to validate `mcp-config.json` (or `.example`) before connection attempts.                                                | `configLoader.ts`                                            |
+| **Transport Handling**  | Dynamically creates `StdioClientTransport` or `StreamableHTTPClientTransport` based on config. Handles env var merging for stdio. | `transport.ts`                                               |
+| **Client Capabilities** | Declares comprehensive client capabilities according to the MCP specification.                                                    | `client.ts` (within `createMcpClient` options)               |
+| **Error Handling**      | Includes specific error handling for client connection and transport issues.                                                      | `client.ts`, `transport.ts` (integrated with `ErrorHandler`) |
 
 ## Installation
 
@@ -217,9 +186,31 @@ Located in `src/mcp-client/`, this module provides functionality to connect to a
    npm run build
    ```
 
+### Running the Example Server
+
+Once built, you can run the included MCP server (which provides the Echo tool and Echo Resource) using the following npm scripts:
+
+- **Using Standard I/O (Default):**
+
+  ```bash
+  npm start
+  # or explicitly:
+  npm run start:stdio
+  ```
+
+  The server will listen for MCP messages on stdin/stdout.
+
+- **Using HTTP:**
+  ```bash
+  npm run start:http
+  ```
+  This uses the `MCP_TRANSPORT_TYPE=http` environment variable implicitly. The server will start an HTTP server (default: `http://127.0.0.1:3000`). You can configure the port, host, and allowed origins using environment variables (see below).
+
 ## Configuration
 
-### Server Configuration
+Configuration is managed through environment variables (for the server) and a JSON file (for the client).
+
+### Server Environment Variables
 
 #### Environment Variables
 
@@ -242,9 +233,7 @@ The **server** behavior can be configured using the following environment variab
 
 **Note on HTTP Port Retries:** If the specified `MCP_HTTP_PORT` is in use, the server will attempt to bind to the next available port, retrying up to 15 times (e.g., if 3000 is busy, it tries 3001, 3002, ..., up to 3015).
 
-### Client Configuration
-
-#### `mcp-config.json`
+### Client Connections (`mcp-config.json`)
 
 The **client** connections are configured via the `src/mcp-client/mcp-config.json` file. If this file doesn't exist, the template will fall back to `src/mcp-client/mcp-config.json.example`.
 
@@ -395,11 +384,6 @@ Example `registration.ts` structure
 // ...
 // await registerMyNewResource(server);
 ```
-
-## Future Plans
-
-- **Enhanced Client Features**: Further develop MCP client capabilities, potentially including features like automatic reconnection, more sophisticated error handling strategies, and support for more advanced MCP features (like subscriptions if needed).
-- **Tool & Resource Library**: Create a library of commonly used tools and resources to be shared across projects.
 
 ## License
 

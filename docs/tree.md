@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-04-27 18:01:31
+Generated on: 2025-05-01 13:32:04
 
 
 ```
@@ -8,6 +8,7 @@ mcp-ts-template
 ├── backups
 ├── docs
     └── tree.md
+├── logs
 ├── scripts
     ├── clean.ts
     ├── make-executable.ts
