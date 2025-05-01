@@ -14,13 +14,7 @@ import { startHttpTransport } from './transports/httpTransport.js';
 import { connectStdioTransport } from './transports/stdioTransport.js';
 
 // --- Configuration Constants ---
-
-/**
- * Determines the transport type for the MCP server based on the MCP_TRANSPORT_TYPE environment variable.
- * Defaults to 'stdio' if the variable is not set. Converts the value to lowercase.
- * @constant {string} TRANSPORT_TYPE - The transport type ('stdio' or 'http').
- */
-const TRANSPORT_TYPE = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase();
+// No longer needed here, transport type is accessed via config object
 
 
 /**
@@ -80,11 +74,13 @@ async function createMcpServerInstance(): Promise<McpServer> {
  * @throws {Error} Throws an error if the transport type is unsupported, or if server creation/connection fails.
  */
 async function startTransport(): Promise<McpServer | void> {
-  const context = { operation: 'startTransport', transport: TRANSPORT_TYPE };
-  logger.info(`Starting transport: ${TRANSPORT_TYPE}`, context);
+  // Use the validated transport type from the config object
+  const transportType = config.mcpTransportType;
+  const context = { operation: 'startTransport', transport: transportType };
+  logger.info(`Starting transport: ${transportType}`, context);
 
   // --- HTTP Transport Setup ---
-  if (TRANSPORT_TYPE === 'http') {
+  if (transportType === 'http') {
     // Delegate to the HTTP transport setup function.
     // Pass the server instance factory function.
     await startHttpTransport(createMcpServerInstance, context);
@@ -93,7 +89,7 @@ async function startTransport(): Promise<McpServer | void> {
   }
 
   // --- Stdio Transport Setup ---
-  if (TRANSPORT_TYPE === 'stdio') {
+  if (transportType === 'stdio') {
     // Create a single server instance for the stdio process.
     const server = await createMcpServerInstance();
     // Delegate connection to the Stdio transport function.
@@ -103,9 +99,9 @@ async function startTransport(): Promise<McpServer | void> {
   }
 
   // --- Unsupported Transport ---
-  // If TRANSPORT_TYPE is neither 'http' nor 'stdio'.
-  logger.fatal(`Unsupported transport type configured: ${TRANSPORT_TYPE}`, context);
-  throw new Error(`Unsupported transport type: ${TRANSPORT_TYPE}. Must be 'stdio' or 'http'.`);
+  // If transportType is neither 'http' nor 'stdio'. (Shouldn't happen with Zod validation)
+  logger.fatal(`Unsupported transport type configured: ${transportType}`, context);
+  throw new Error(`Unsupported transport type: ${transportType}. Must be 'stdio' or 'http'.`);
 }
 
 /**

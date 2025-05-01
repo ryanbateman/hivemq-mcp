@@ -6,28 +6,28 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js'; // Added missing import
 import express, { NextFunction, Request, Response } from 'express';
 import http from 'http';
 import { randomUUID } from 'node:crypto';
-// Import utils from the main barrel file (logger from ../../utils/internal/logger.js)
+// Import config and utils
+import { config } from '../../config/index.js'; // Import the validated config object
 import { logger } from '../../utils/index.js';
 
-// --- Configuration Constants ---
+// --- Configuration Constants (Now derived from imported config) ---
 
 /**
  * The port number for the HTTP transport, configured via the MCP_HTTP_PORT environment variable.
- * Defaults to 3010 if the variable is not set or invalid.
+ * Defaults to 3010 (defined in config/index.ts).
  * @constant {number} HTTP_PORT - The port number for the HTTP server.
  */
-const HTTP_PORT = process.env.MCP_HTTP_PORT ? parseInt(process.env.MCP_HTTP_PORT, 10) : 3010; // Changed default port
+const HTTP_PORT = config.mcpHttpPort;
 
 /**
  * The host address for the HTTP transport, configured via the MCP_HTTP_HOST environment variable.
- * Defaults to '127.0.0.1' (localhost) if the variable is not set.
+ * Defaults to '127.0.0.1' (defined in config/index.ts).
  * @constant {string} HTTP_HOST - The host address for the HTTP server.
  */
-const HTTP_HOST = process.env.MCP_HTTP_HOST || '127.0.0.1';
+const HTTP_HOST = config.mcpHttpHost;
 
 /**
  * The specific endpoint path for handling MCP requests over HTTP.
@@ -68,8 +68,8 @@ function isOriginAllowed(req: Request, res: Response): boolean {
   const host = req.hostname;
   // Check if the server is effectively bound only to loopback addresses
   const isLocalhostBinding = ['127.0.0.1', '::1', 'localhost'].includes(host);
-  // Retrieve allowed origins from environment variable, split into an array
-  const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',') || [];
+  // Retrieve allowed origins from the validated config object
+  const allowedOrigins = config.mcpAllowedOrigins || []; // Use the parsed array from config
   logger.debug('Checking origin allowance', { operation: 'isOriginAllowed', origin, host, isLocalhostBinding, allowedOrigins });
 
   // Determine if the origin is allowed:
@@ -426,11 +426,11 @@ export async function startHttpTransport(
   logger.debug('Creating HTTP server instance...', context);
   const serverInstance = http.createServer(app);
   try {
-    logger.debug('Attempting to start HTTP server with retry logic...', context);
-    // Attempt to start the server, retrying ports if necessary.
-    const actualPort = await startHttpServerWithRetry(serverInstance, HTTP_PORT, HTTP_HOST, MAX_PORT_RETRIES, context);
+    logger.debug('Attempting to start HTTP server with retry logic using config values...', context);
+    // Attempt to start the server, retrying ports if necessary, using values from config.
+    const actualPort = await startHttpServerWithRetry(serverInstance, config.mcpHttpPort, config.mcpHttpHost, MAX_PORT_RETRIES, context);
     // Log the final address only after successful binding.
-    const serverAddress = `http://${HTTP_HOST}:${actualPort}${MCP_ENDPOINT_PATH}`;
+    const serverAddress = `http://${config.mcpHttpHost}:${actualPort}${MCP_ENDPOINT_PATH}`;
     // Use console.log for prominent startup message visibility.
     console.log(`\n🚀 MCP Server running in HTTP mode at: ${serverAddress}\n`);
   } catch (err) {

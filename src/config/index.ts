@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { z } from 'zod';
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -13,33 +14,103 @@ const pkgPath = join(__dirname, '../../package.json');
 let pkg = { name: 'mcp-ts-template', version: '0.0.0' };
 
 try {
-  // Read and parse package.json to get server name and version
+  // Read and parse package.json to get default server name and version
   pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 } catch (error) {
-  // Silently use default pkg info if reading fails. Error will be logged later if needed.
+  // Silently use default pkg info if reading fails.
+  // Consider adding logging here if robust error handling is needed.
+  console.error("Warning: Could not read package.json for default config values.", error);
 }
+
+// Define a schema for environment variables for validation and type safety
+const EnvSchema = z.object({
+  MCP_SERVER_NAME: z.string().optional(),
+  MCP_SERVER_VERSION: z.string().optional(),
+  MCP_LOG_LEVEL: z.string().default("info"),
+  NODE_ENV: z.string().default("development"),
+  MCP_TRANSPORT_TYPE: z.enum(['stdio', 'http']).default('stdio'),
+  MCP_HTTP_PORT: z.coerce.number().int().positive().default(3010), // Updated default port
+  MCP_HTTP_HOST: z.string().default('127.0.0.1'),
+  MCP_ALLOWED_ORIGINS: z.string().optional(), // Comma-separated string
+});
+
+// Parse and validate environment variables
+const parsedEnv = EnvSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  console.error("❌ Invalid environment variables:", parsedEnv.error.flatten().fieldErrors);
+  // Decide if the application should exit or continue with defaults
+  // For critical configs, you might want to throw an error:
+  // throw new Error("Invalid environment configuration.");
+  // For now, we'll log the error and proceed with defaults where possible.
+}
+
+const env = parsedEnv.success ? parsedEnv.data : EnvSchema.parse({}); // Use defaults on failure
 
 /**
  * Main application configuration object.
  * Aggregates settings from environment variables and package.json.
  */
 export const config = {
-  /** The name of the MCP server, derived from package.json. */
-  mcpServerName: pkg.name,
-  /** The version of the MCP server, derived from package.json. */
-  mcpServerVersion: pkg.version,
-  /** Logging level for the application (e.g., "debug", "info", "warning", "error"). Defaults to "info". */
-  logLevel: process.env.MCP_LOG_LEVEL || "info", // Use MCP_LOG_LEVEL consistently
-  /** The runtime environment (e.g., "development", "production"). Defaults to "development". */
-  environment: process.env.NODE_ENV || "development",
-  /** Security-related configurations. */
-  security: {
-    // Placeholder for security settings
-    // Example: authRequired: process.env.AUTH_REQUIRED === 'true'
-    /** Indicates if authentication is required for server operations. */
-    authRequired: false,
-  }
-  // Note: mcpClient configuration is now loaded separately from mcp-config.json
+  /**
+   * The name of the MCP server.
+   * Prioritizes MCP_SERVER_NAME env var, falls back to package.json name.
+   * Default: 'mcp-ts-template' (from package.json)
+   */
+  mcpServerName: env.MCP_SERVER_NAME || pkg.name,
+
+  /**
+   * The version of the MCP server.
+   * Prioritizes MCP_SERVER_VERSION env var, falls back to package.json version.
+   * Default: (from package.json)
+   */
+  mcpServerVersion: env.MCP_SERVER_VERSION || pkg.version,
+
+  /**
+   * Logging level for the application (e.g., "debug", "info", "warning", "error").
+   * Controlled by MCP_LOG_LEVEL env var.
+   * Default: "info"
+   */
+  logLevel: env.MCP_LOG_LEVEL,
+
+  /**
+   * The runtime environment (e.g., "development", "production").
+   * Controlled by NODE_ENV env var.
+   * Default: "development"
+   */
+  environment: env.NODE_ENV,
+
+  /**
+   * Specifies the transport mechanism for the server.
+   * Controlled by MCP_TRANSPORT_TYPE env var. Options: 'stdio', 'http'.
+   * Default: "stdio"
+   */
+  mcpTransportType: env.MCP_TRANSPORT_TYPE,
+
+  /**
+   * The port number for the HTTP server to listen on (if MCP_TRANSPORT_TYPE is 'http').
+   * Controlled by MCP_HTTP_PORT env var.
+   * Default: 3010
+   */
+  mcpHttpPort: env.MCP_HTTP_PORT,
+
+  /**
+   * The host address for the HTTP server to bind to (if MCP_TRANSPORT_TYPE is 'http').
+   * Controlled by MCP_HTTP_HOST env var.
+   * Default: "127.0.0.1"
+   */
+  mcpHttpHost: env.MCP_HTTP_HOST,
+
+  /**
+   * Comma-separated list of allowed origins for CORS requests when using the 'http' transport.
+   * Controlled by MCP_ALLOWED_ORIGINS env var.
+   * Default: undefined (meaning CORS might be restrictive by default in the transport layer)
+   */
+  mcpAllowedOrigins: env.MCP_ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean),
+
+  // Note: mcpClient configuration is loaded separately via src/mcp-client/configLoader.ts
+  // Note: Logger-specific configurations (LOG_FILE_PATH, LOG_MAX_FILES, etc.)
+  //       are typically handled directly within the logger utility (src/utils/internal/logger.ts)
 };
 
 /**
@@ -56,5 +127,5 @@ export const logLevel = config.logLevel;
  */
 export const environment = config.environment;
 
-// REMOVED: Logger initialization and validation logic.
-// This will now happen at the very start of src/index.ts.
+// Logger initialization and validation logic should occur at the application entry point (e.g., src/index.ts)
+// after configuration is loaded.
