@@ -11,9 +11,8 @@ import { processEchoMessage } from './echoToolLogic.js';
 /**
  * Registers the 'echo_message' tool and its handler with the provided MCP server instance.
  * Defines the tool's input schema, description, and the core request handling logic.
- * Error handling is integrated using ErrorHandler.
+ * Error handling is integrated using ErrorHandler. (Asynchronous)
  *
- * @async
  * @function registerEchoTool
  * @param {McpServer} server - The MCP server instance to register the tool with.
  * @returns {Promise<void>} A promise that resolves when the tool registration is complete.

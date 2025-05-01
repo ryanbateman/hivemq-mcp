@@ -14,7 +14,6 @@ import { EchoParams, processEchoResource } from './echoResourceLogic.js'; // Rem
  * This includes defining the resource template, metadata, query schema, examples,
  * and the core request handling logic. Error handling is integrated using ErrorHandler.
  *
- * @async
  * @function registerEchoResource
  * @param {McpServer} server - The MCP server instance to register the resource with.
  * @returns {Promise<void>} A promise that resolves when the resource registration is complete.

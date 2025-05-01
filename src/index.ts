@@ -1,37 +1,11 @@
 #!/usr/bin/env node
 
-// --- Logger Initialization (Must happen FIRST) ---
-// Import logger and types directly from the source file to avoid potential circular dependencies via barrel files during early init
-import { logger, McpLogLevel } from "./utils/internal/logger.js";
-
-// Define valid MCP log levels based on the logger's type definition
-const validMcpLogLevels: McpLogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit', 'alert', 'emerg'];
-// Read initial level directly from env var or default to 'info'
-const initialLogLevelEnv = process.env.MCP_LOG_LEVEL || 'info';
-// Validate the configured log level
-let validatedMcpLogLevel: McpLogLevel = 'info'; // Default to 'info'
-if (validMcpLogLevels.includes(initialLogLevelEnv as McpLogLevel)) {
-  validatedMcpLogLevel = initialLogLevelEnv as McpLogLevel;
-} else {
-  // Use console.warn here as logger isn't initialized yet
-  console.warn(`Invalid MCP_LOG_LEVEL "${initialLogLevelEnv}" provided. Defaulting to "info".`);
-}
-// Initialize the logger with the validated MCP level.
-logger.initialize(validatedMcpLogLevel);
-// Log initialization message using the logger itself (will go to file)
-logger.info(`Logger initialized early in src/index.ts. MCP logging level: ${validatedMcpLogLevel}`);
-// --- End Logger Initialization ---
-
-
-// --- Now import other modules ---
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'; // Import McpServer type
-import { config, environment } from "./config/index.js"; // Config can now safely import logger if needed (it doesn't directly, but its dependencies might)
-import { initializeAndStartServer } from "./mcp-server/server.js"; // Updated import
-// Import requestContextService from the main barrel file (logger is already imported above)
+// Imports MUST be at the top level
+import { logger, McpLogLevel } from "./utils/internal/logger.js"; // Import logger instance early
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { config, environment } from "./config/index.js"; // This loads .env via dotenv.config()
+import { initializeAndStartServer } from "./mcp-server/server.js";
 import { requestContextService } from "./utils/index.js";
-
-// Log that config is loaded (this was previously in config/index.ts)
-logger.debug("Configuration loaded successfully", { config });
 
 /**
  * The main MCP server instance.
@@ -83,6 +57,29 @@ const shutdown = async (signal: string) => {
  * and registers signal handlers for graceful shutdown and error handling.
  */
 const start = async () => {
+
+  // --- Logger Initialization (Moved here AFTER config/dotenv is loaded) ---
+  const validMcpLogLevels: McpLogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit', 'alert', 'emerg'];
+  // Read level from config (which read from env var or default)
+  const initialLogLevelConfig = config.logLevel;
+  // Validate the configured log level
+  let validatedMcpLogLevel: McpLogLevel = 'info'; // Default to 'info'
+  if (validMcpLogLevels.includes(initialLogLevelConfig as McpLogLevel)) {
+    validatedMcpLogLevel = initialLogLevelConfig as McpLogLevel;
+  } else {
+    // Use console.warn here as logger isn't initialized yet
+    console.warn(`Invalid MCP_LOG_LEVEL "${initialLogLevelConfig}" provided via config/env. Defaulting to "info".`);
+  }
+  // Initialize the logger with the validated MCP level and wait for it to complete.
+  await logger.initialize(validatedMcpLogLevel);
+  // Log initialization message using the logger itself (will go to file/console)
+  logger.info(`Logger initialized by start(). MCP logging level: ${validatedMcpLogLevel}`);
+  // --- End Logger Initialization ---
+
+  // Log that config is loaded (this was previously done earlier)
+  logger.debug("Configuration loaded successfully", { config });
+
+
   // Create application-level request context using the service instance
   const transportType = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase();
   const startupContext = requestContextService.createRequestContext({
@@ -171,5 +168,9 @@ const start = async () => {
   }
 };
 
-// Start the application
-start();
+// --- Async IIFE to allow top-level await ---
+// This remains necessary because start() is async
+(async () => {
+  // Start the application
+  await start();
+})(); // End async IIFE

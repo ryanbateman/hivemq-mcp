@@ -1,5 +1,5 @@
 /**
- * @fileoverview Main entry point for the MCP (Model Context Protocol) server.
+ * Main entry point for the MCP (Model Context Protocol) server.
  * This file sets up the server instance, registers resources and tools,
  * and orchestrates the connection to the appropriate transport layer (stdio or HTTP).
  */
@@ -29,9 +29,8 @@ const TRANSPORT_TYPE = (process.env.MCP_TRANSPORT_TYPE || 'stdio').toLowerCase()
  * version, capabilities, and registering all defined resources and tools.
  * It's designed to be called either once for the stdio transport or potentially
  * multiple times for stateless handling in the HTTP transport (though currently
- * used once per session in HTTP).
+ * used once per session in HTTP). (Asynchronous)
  *
- * @async
  * @returns {Promise<McpServer>} A promise that resolves with the fully configured McpServer instance.
  * @throws {Error} Throws an error if the registration of any resource or tool fails.
  */
@@ -75,9 +74,8 @@ async function createMcpServerInstance(): Promise<McpServer> {
 /**
  * Sets up and starts the MCP transport layer based on the `TRANSPORT_TYPE` constant.
  * Delegates the actual transport setup and connection logic to specific functions
- * imported from the `transports/` directory.
+ * imported from the `transports/` directory. (Asynchronous)
  *
- * @async
  * @returns {Promise<McpServer | void>} For 'stdio' transport, returns the `McpServer` instance. For 'http' transport, returns `void` as the server runs indefinitely.
  * @throws {Error} Throws an error if the transport type is unsupported, or if server creation/connection fails.
  */
@@ -113,10 +111,8 @@ async function startTransport(): Promise<McpServer | void> {
 /**
  * Main application entry point.
  * Calls `startTransport` to initialize and start the MCP server based on the
- * configured transport type. Handles top-level errors during startup.
+ * configured transport type. Handles top-level errors during startup. (Asynchronous)
  *
- * @async
- * @export
  * @returns {Promise<void | McpServer>} Resolves with the McpServer instance if using stdio, or void if using http (as it runs indefinitely). Rejects on critical startup failure.
  */
 export async function initializeAndStartServer(): Promise<void | McpServer> {

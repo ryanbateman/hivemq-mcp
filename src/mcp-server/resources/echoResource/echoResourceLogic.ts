@@ -3,8 +3,12 @@ import { z } from 'zod';
 import { logger, type RequestContext } from '../../../utils/index.js';
 
 /**
- * Zod schema defining the expected query parameters for the echo resource.
- * Used for validation and type inference.
+ * Zod schema defining the expected *query* parameters for the echo resource.
+ * Note: Path parameters (like '{message}' in 'echo://{message}') are defined
+ * in the ResourceTemplate and are typically extracted directly from the URI path,
+ * not validated by this schema. This schema focuses on optional or additional
+ * parameters passed via the query string (e.g., ?param=value).
+ * Used for validation and type inference of query parameters.
  */
 export const querySchema = z.object({
   /** Optional message to be echoed back in the response. */
