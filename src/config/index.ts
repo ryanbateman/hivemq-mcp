@@ -32,6 +32,7 @@ const EnvSchema = z.object({
   MCP_HTTP_PORT: z.coerce.number().int().positive().default(3010), // Updated default port
   MCP_HTTP_HOST: z.string().default('127.0.0.1'),
   MCP_ALLOWED_ORIGINS: z.string().optional(), // Comma-separated string
+  MCP_AUTH_SECRET_KEY: z.string().min(32, "MCP_AUTH_SECRET_KEY must be at least 32 characters long for security").optional(), // Secret for signing/verifying tokens
 });
 
 // Parse and validate environment variables
@@ -107,6 +108,14 @@ export const config = {
    * Default: undefined (meaning CORS might be restrictive by default in the transport layer)
    */
   mcpAllowedOrigins: env.MCP_ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean),
+
+  /**
+   * A secret key used for signing and verifying authentication tokens (e.g., JWT).
+   * MUST be set in production for HTTP transport security.
+   * Controlled by MCP_AUTH_SECRET_KEY env var.
+   * Default: undefined (Auth middleware should throw error if not set in production)
+   */
+  mcpAuthSecretKey: env.MCP_AUTH_SECRET_KEY,
 
   // Note: mcpClient configuration is loaded separately via src/mcp-client/configLoader.ts
   // Note: Logger-specific configurations (LOG_FILE_PATH, LOG_MAX_FILES, etc.)

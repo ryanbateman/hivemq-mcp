@@ -1,8 +1,8 @@
 # MCP TypeScript Template 🚀
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.3-blue.svg)](https://www.typescriptlang.org/)
-[![Model Context Protocol](https://img.shields.io/badge/MCP_SDK-1.10.2-green.svg)](https://modelcontextprotocol.io/) <!-- Clarified SDK version -->
-[![Version](https://img.shields.io/badge/Version-1.1.2-blue.svg)](./CHANGELOG.md)
+[![Model Context Protocol](https://img.shields.io/badge/MCP_SDK-1.11.0-green.svg)](https://modelcontextprotocol.io/) <!-- Clarified SDK version -->
+[![Version](https://img.shields.io/badge/Version-1.1.3-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
@@ -74,18 +74,21 @@ Get the example server running in minutes:
 
 Configure the MCP server's behavior using these environment variables:
 
-| Variable              | Description                                                              | Default             |
-| --------------------- | ------------------------------------------------------------------------ | ------------------- |
-| `MCP_TRANSPORT_TYPE`  | Server transport: `stdio` or `http`.                                     | `stdio`             |
-| `MCP_HTTP_PORT`       | Port for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                 | `3010`              |
-| `MCP_HTTP_HOST`       | Host address for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).         | `127.0.0.1`         |
-| `MCP_ALLOWED_ORIGINS` | Comma-separated allowed origins for CORS (if `MCP_TRANSPORT_TYPE=http`). | (none)              |
-| `MCP_SERVER_NAME`     | Optional server name (used in MCP initialization).                       | (from package.json) |
-| `MCP_SERVER_VERSION`  | Optional server version (used in MCP initialization).                    | (from package.json) |
-| `MCP_LOG_LEVEL`       | Server logging level (`debug`, `info`, `warning`, `error`, etc.).        | `info`              |
-| `NODE_ENV`            | Runtime environment (`development`, `production`).                       | `development`       |
+| Variable              | Description                                                                                         | Default                                |
+| --------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `MCP_TRANSPORT_TYPE`  | Server transport: `stdio` or `http`.                                                                | `stdio`                                |
+| `MCP_HTTP_PORT`       | Port for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                            | `3010`                                 |
+| `MCP_HTTP_HOST`       | Host address for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                    | `127.0.0.1`                            |
+| `MCP_ALLOWED_ORIGINS` | Comma-separated allowed origins for CORS (if `MCP_TRANSPORT_TYPE=http`).                            | (none)                                 |
+| `MCP_SERVER_NAME`     | Optional server name (used in MCP initialization).                                                  | (from package.json)                    |
+| `MCP_SERVER_VERSION`  | Optional server version (used in MCP initialization).                                               | (from package.json)                    |
+| `MCP_LOG_LEVEL`       | Server logging level (`debug`, `info`, `warning`, `error`, etc.).                                   | `info`                                 |
+| `NODE_ENV`            | Runtime environment (`development`, `production`).                                                  | `development`                          |
+| `MCP_AUTH_SECRET_KEY` | **Required for HTTP transport.** Secret key (min 32 chars) for signing/verifying auth tokens (JWT). | (none - **MUST be set in production**) |
 
 **Note on HTTP Port Retries:** If the `MCP_HTTP_PORT` is busy, the server automatically tries the next port (up to 15 times).
+
+**Security Note for HTTP Transport:** When using `MCP_TRANSPORT_TYPE=http`, authentication is **mandatory** as per the MCP specification. This template includes JWT-based authentication middleware (`src/mcp-server/transports/authentication/authMiddleware.ts`). You **MUST** set a strong, unique `MCP_AUTH_SECRET_KEY` in your production environment for this security mechanism to function correctly. Failure to do so will result in bypassed authentication checks in development and fatal errors in production.
 
 ### Client Configuration (`mcp-config.json`)
 
