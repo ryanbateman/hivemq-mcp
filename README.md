@@ -1,15 +1,16 @@
 # MCP TypeScript Template 🚀
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.3-blue.svg)](https://www.typescriptlang.org/)
-[![Model Context Protocol](https://img.shields.io/badge/MCP_SDK-1.11.0-green.svg)](https://modelcontextprotocol.io/) <!-- Clarified SDK version -->
-[![Version](https://img.shields.io/badge/Version-1.1.3-blue.svg)](./CHANGELOG.md)
+[![Model Context Protocol SDK](https://img.shields.io/badge/MCP%20SDK-1.11.0-green.svg)](https://github.com/modelcontextprotocol/typescript-sdk)
+[![MCP Spec Version](https://img.shields.io/badge/MCP%20Spec-2025--03--26-lightgrey.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-03-26/changelog.mdx)
+[![Version](https://img.shields.io/badge/Version-1.1.4-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
 
 **Jumpstart your [Model Context Protocol (MCP) Client & Server](https://modelcontextprotocol.io/) development with this TypeScript Repo Template!**
 
-This template provides a solid, beginner-friendly foundation for building robust MCP servers and clients. It includes production-ready utilities, a well-structured codebase, working examples, and clear documentation to get you up and running quickly.
+This template provides a solid, beginner-friendly foundation for building robust MCP servers and clients, adhering to the **MCP 2025-03-26 specification**. It includes production-ready utilities, a well-structured codebase, working examples, and clear documentation to get you up and running quickly.
 
 Whether you're creating a new MCP server to extend an AI's capabilities or integrating MCP client features into your application, this template is your starting point.
 
@@ -18,8 +19,8 @@ Whether you're creating a new MCP server to extend an AI's capabilities or integ
 - **🚀 Production-Ready Utilities**: Includes logging, error handling, ID generation, rate limiting, request context tracking, and input sanitization out-of-the-box.
 - **🔒 Type Safety & Security**: Leverages TypeScript and Zod for strong type checking and validation, plus built-in security utilities.
 - **⚙️ Robust Error Handling**: Consistent error categorization and detailed logging for easier debugging.
-- **🔌 MCP Server Example**: A functional server with an example [Echo Tool](src/mcp-server/tools/echoTool/index.ts) and [Echo Resource](src/mcp-server/resources/echoResource/index.ts). Supports both `stdio` and `http` (SSE) transports.
-- **💻 MCP Client Example**: A working client ([src/mcp-client/](src/mcp-client/index.ts)) ready to connect to other MCP servers via `mcp-config.json`.
+- **🔌 MCP Server**: A functional server with an example [Echo Tool](src/mcp-server/tools/echoTool/index.ts) and [Echo Resource](src/mcp-server/resources/echoResource/index.ts). Supports both `stdio` and `http` (SSE) transports.
+- **💻 MCP Client**: A working client ([src/mcp-client/](src/mcp-client/index.ts)) aligned with the **MCP 2025-03-26 spec**, ready to connect to external MCP servers via `mcp-config.json`. Includes detailed comments explaining spec requirements.
 - **📚 Clear Documentation**: Comprehensive guides on usage, configuration, and extension.
 - **🛠️ Handy Utility Scripts**: Includes scripts for cleaning builds, making files executable, generating directory trees, and fetching OpenAPI specs ([scripts/](scripts/)).
 - **🤖 Agent Ready**: Comes with a [.clinerules](.clinerules) file – a developer cheatsheet perfect for LLM coding agents, detailing patterns, file locations, and usage snippets. (Remember to update it as you customize!)
@@ -94,9 +95,9 @@ Configure the MCP server's behavior using these environment variables:
 
 Configure the connections for the built-in **MCP client** using `src/mcp-client/mcp-config.json`. If this file is missing, it falls back to `src/mcp-client/mcp-config.json.example`.
 
-This file defines external MCP servers the client can connect to.
+This file defines external MCP servers the client can connect to. The client implementation adheres to the **MCP 2025-03-26 specification**.
 
-**Example `mcp-config.json`:**
+**Example `mcp-config.json` (see `mcp-config.json.example` for the full version):**
 
 ```json
 {
@@ -105,13 +106,15 @@ This file defines external MCP servers the client can connect to.
       "command": "node", // Command or executable
       "args": ["/path/to/my-server/index.js"], // Arguments for stdio
       "env": { "LOG_LEVEL": "debug" }, // Optional environment variables
-      "transportType": "stdio" // Explicitly stdio
+      "transportType": "stdio" // Explicitly stdio (or omit for default)
     },
     "my-http-server": {
       "command": "http://localhost:8080", // Base URL for HTTP
       "args": [], // Not used for HTTP
+      "env": {}, // Not used for HTTP
       "transportType": "http" // Explicitly http
     }
+    // ... add other servers
   }
 }
 ```
@@ -121,23 +124,23 @@ This file defines external MCP servers the client can connect to.
 - **`env`**: Optional environment variables to set for the server process (`stdio`).
 - **`transportType`**: `stdio` (default) or `http`.
 
-See `src/mcp-client/configLoader.ts` for the Zod validation schema.
+See `src/mcp-client/configLoader.ts` for the Zod validation schema and `src/mcp-client/mcp-config.json.example` for a complete example.
 
 ## 🏗️ Project Structure
 
 The `src/` directory is organized for clarity:
 
 - `config/`: Loads environment variables and package info.
-- `mcp-client/`: Logic for the client connecting to _external_ MCP servers.
-  - `client.ts`: Core connection management.
+- `mcp-client/`: Logic for the client connecting to _external_ MCP servers (updated to MCP 2025-03-26 spec).
+  - `client.ts`: Core connection management, initialization, capability declaration.
   - `configLoader.ts`: Loads and validates `mcp-config.json`.
-  - `transport.ts`: Creates `stdio` or `http` client transports.
+  - `transport.ts`: Creates `stdio` or `http` client transports based on config.
   - `mcp-config.json.example`: Example client config. Copy to `mcp-config.json`.
 - `mcp-server/`: Logic for the MCP server _provided by this template_.
   - `server.ts`: Initializes the server, registers tools/resources.
   - `resources/`: Example resource implementations (e.g., EchoResource).
   - `tools/`: Example tool implementations (e.g., EchoTool).
-  - `transports/`: Handles `stdio` and `http` communication.
+  - `transports/`: Handles `stdio` and `http` communication for the server.
 - `types-global/`: Shared TypeScript definitions (Errors, MCP types).
 - `utils/`: Reusable utilities (logging, errors, security, parsing, etc.). Exported via `index.ts`.
 
@@ -151,12 +154,12 @@ npm run tree
 
 ## 🧩 Adding Your Own Tools & Resources
 
-This template is designed for extension!
+This template is designed for extension! Follow the high-level SDK patterns:
 
 1.  **Create Directories**: Add new directories under `src/mcp-server/tools/yourToolName/` or `src/mcp-server/resources/yourResourceName/`.
 2.  **Implement Logic (`logic.ts`)**: Define Zod schemas for inputs/outputs and write your core processing function.
 3.  **Register (`registration.ts`)**:
-    - **Tools**: Use `server.tool(name, description, zodSchemaShape, handler)` (SDK v1.10.2+). This handles schema generation, validation, and routing.
+    - **Tools**: Use `server.tool(name, description, zodSchemaShape, handler)` (SDK v1.10.2+). This handles schema generation, validation, and routing. Remember to add relevant annotations (`readOnlyHint`, `destructiveHint`, etc.) as untrusted hints.
     - **Resources**: Use `server.resource(regName, template, metadata, handler)`.
     - Wrap logic in `ErrorHandler.tryCatch` for robust error handling.
 4.  **Export & Import**: Export the registration function from your new directory's `index.ts` and call it within `createMcpServerInstance` in `src/mcp-server/server.ts`.
@@ -186,7 +189,7 @@ Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Conte
 | Category                 | Feature                         | Description                                                                                                  | Location(s)                                      |
 | ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
 | **Core Components**      | MCP Server                      | Core server logic, tool/resource registration, transport handling. Includes Echo Tool & Resource examples.   | `src/mcp-server/`                                |
-|                          | MCP Client                      | Logic for connecting to external MCP servers defined in `mcp-config.json`.                                   | `src/mcp-client/`                                |
+|                          | MCP Client                      | Logic for connecting to external MCP servers (updated to **MCP 2025-03-26 spec**).                           | `src/mcp-client/`                                |
 |                          | Configuration                   | Environment-aware settings with Zod validation.                                                              | `src/config/`, `src/mcp-client/configLoader.ts`  |
 |                          | HTTP Transport                  | Express-based server with SSE, session management, CORS, port retries.                                       | `src/mcp-server/transports/httpTransport.ts`     |
 |                          | Stdio Transport                 | Handles MCP communication over standard input/output.                                                        | `src/mcp-server/transports/stdioTransport.ts`    |
@@ -199,7 +202,7 @@ Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Conte
 | **Utilities (Security)** | IdGenerator                     | Generates unique IDs (prefixed or UUIDs).                                                                    | `src/utils/security/idGenerator.ts`              |
 |                          | RateLimiter                     | Request throttling based on keys.                                                                            | `src/utils/security/rateLimiter.ts`              |
 |                          | Sanitization                    | Input validation/cleaning (HTML, paths, URLs, numbers, JSON) & log redaction (`validator`, `sanitize-html`). | `src/utils/security/sanitization.ts`             |
-| **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP, Tools).                                | `src/types-global/`                              |
+| **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP types).                                | `src/types-global/`                              |
 |                          | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.                                  | Throughout (`config`, `mcp-client`, tools, etc.) |
 | **Error Handling**       | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                   | `src/utils/internal/errorHandler.ts`             |
 |                          | Consistent Formatting           | Standardized error responses with additional context.                                                        | `src/utils/internal/errorHandler.ts`             |
