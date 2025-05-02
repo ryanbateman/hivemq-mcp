@@ -16,16 +16,18 @@ Whether you're creating a new MCP server to extend an AI's capabilities or integ
 
 ## ✨ Key Features
 
-- **🚀 Production-Ready Utilities**: Includes logging, error handling, ID generation, rate limiting, request context tracking, and input sanitization out-of-the-box.
-- **🔒 Type Safety & Security**: Leverages TypeScript and Zod for strong type checking and validation, plus built-in security utilities.
-- **⚙️ Robust Error Handling**: Consistent error categorization and detailed logging for easier debugging.
-- **🔌 MCP Server**: A functional server with an example [Echo Tool](src/mcp-server/tools/echoTool/index.ts) and [Echo Resource](src/mcp-server/resources/echoResource/index.ts). Supports both `stdio` and `http` (SSE) transports.
-- **💻 MCP Client**: A working client ([src/mcp-client/](src/mcp-client/index.ts)) aligned with the **MCP 2025-03-26 spec**, ready to connect to external MCP servers via `mcp-config.json`. Includes detailed comments explaining spec requirements.
-- **📚 Clear Documentation**: Comprehensive guides on usage, configuration, and extension.
-- **🛠️ Handy Utility Scripts**: Includes scripts for cleaning builds, making files executable, generating directory trees, and fetching OpenAPI specs ([scripts/](scripts/)).
-- **🤖 Agent Ready**: Comes with a [.clinerules](.clinerules) file – a developer cheatsheet perfect for LLM coding agents, detailing patterns, file locations, and usage snippets. (Remember to update it as you customize!)
+| Feature Area                | Description                                                                                                                      | Key Components / Location                                                      |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| **🔌 MCP Server**           | Functional server example with Echo Tool & Resource. Supports `stdio` and `http` (SSE) transports.                               | `src/mcp-server/`                                                              |
+| **💻 MCP Client**           | Working client aligned with **MCP 2025-03-26 spec**. Connects via `mcp-config.json`. Includes detailed comments.                 | `src/mcp-client/`                                                              |
+| **🚀 Production Utilities** | Logging, Error Handling, ID Generation, Rate Limiting, Request Context tracking, Input Sanitization.                             | `src/utils/`                                                                   |
+| **🔒 Type Safety/Security** | Strong type checking via TypeScript & Zod validation. Built-in security utilities (sanitization, auth middleware stub for HTTP). | Throughout, `src/utils/security/`, `src/mcp-server/transports/authentication/` |
+| **⚙️ Error Handling**       | Consistent error categorization (`BaseErrorCode`), detailed logging, centralized handling (`ErrorHandler`).                      | `src/utils/internal/errorHandler.ts`, `src/types-global/`                      |
+| **📚 Documentation**        | Comprehensive `README.md`, inline JSDoc comments.                                                                                | `README.md`, Codebase                                                          |
+| **🤖 Agent Ready**          | Includes a [.clinerules](.clinerules) developer cheatsheet tailored for LLM coding agents.                                       | `.clinerules`                                                                  |
+| **🛠️ Utility Scripts**      | Scripts for cleaning builds, setting executable permissions, generating directory trees, and fetching OpenAPI specs.             | `scripts/`                                                                     |
 
-_For a deep dive into all features, see the [Detailed Features Table](#detailed-features-table) below._
+_For a more granular breakdown, see the [Detailed Features Table](#detailed-features-table) below._
 
 ## 📋 Table of Contents
 
@@ -202,7 +204,7 @@ Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Conte
 | **Utilities (Security)** | IdGenerator                     | Generates unique IDs (prefixed or UUIDs).                                                                    | `src/utils/security/idGenerator.ts`              |
 |                          | RateLimiter                     | Request throttling based on keys.                                                                            | `src/utils/security/rateLimiter.ts`              |
 |                          | Sanitization                    | Input validation/cleaning (HTML, paths, URLs, numbers, JSON) & log redaction (`validator`, `sanitize-html`). | `src/utils/security/sanitization.ts`             |
-| **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP types).                                | `src/types-global/`                              |
+| **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP types).                                 | `src/types-global/`                              |
 |                          | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.                                  | Throughout (`config`, `mcp-client`, tools, etc.) |
 | **Error Handling**       | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                   | `src/utils/internal/errorHandler.ts`             |
 |                          | Consistent Formatting           | Standardized error responses with additional context.                                                        | `src/utils/internal/errorHandler.ts`             |
