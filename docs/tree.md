@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-01 19:20:02
+Generated on: 2025-05-02 18:06:14
 
 
 ```
@@ -11,6 +11,7 @@ mcp-ts-template
     └── tree.md
 ├── scripts
     ├── clean.ts
+    ├── fetch-openapi-spec.ts
     ├── make-executable.ts
     └── tree.ts
 ├── src
@@ -35,6 +36,8 @@ mcp-ts-template
     │   │   │   ├── index.ts
     │   │   │   └── registration.ts
     │   ├── transports
+    │   │   ├── authentication
+    │   │   │   └── authMiddleware.ts
     │   │   ├── httpTransport.ts
     │   │   └── stdioTransport.ts
     │   ├── .DS_Store
