@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - 2025-05-02
+
+### Added
+
+- **HTTP Authentication**: Implemented mandatory JWT-based authentication for the HTTP transport (`src/mcp-server/transports/authentication/authMiddleware.ts`) as required by MCP security guidelines. Added `jsonwebtoken` dependency.
+- **Configuration**: Added `MCP_AUTH_SECRET_KEY` environment variable for JWT signing/verification.
+
+### Changed
+
+- **Dependencies**: Updated `@modelcontextprotocol/sdk` to `^1.11.0`.
+- **HTTP Transport**: Integrated authentication middleware, enhanced security headers (CSP, Referrer-Policy), and improved logging context/clarity.
+- **Server Core**: Refined server initialization logging and error handling. Improved comments referencing MCP specifications.
+- **Stdio Transport**: Improved logging context and added comments referencing MCP specifications and authentication guidelines.
+- **Documentation**: Updated `README.md` with new version badges, authentication details, and configuration variable (`MCP_AUTH_SECRET_KEY`). Regenerated `docs/tree.md`.
+
+
 ## [1.1.2] - 2025-05-01
 
 ### Added
