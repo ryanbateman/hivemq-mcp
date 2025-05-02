@@ -1,16 +1,27 @@
 /**
- * Barrel file for the MCP Client module.
- * Exports the primary functions for creating, connecting, and managing MCP client instances.
+ * Barrel file for the MCP Client module (`src/mcp-client`).
+ * This file re-exports the primary functions and types related to creating,
+ * configuring, connecting, and managing MCP client instances based on the
+ * MCP 2025-03-26 specification and the high-level TypeScript SDK.
  */
 
+// Export core client connection management functions and the connected client type alias.
 export {
-  connectMcpClient, disconnectAllMcpClients, disconnectMcpClient, type ConnectedMcpClient // Export the type alias as well
-} from './client.js';
+  connectMcpClient,
+  disconnectAllMcpClients,
+  disconnectMcpClient,
+  type ConnectedMcpClient, // Export the type alias for a connected client instance
+} from "./client.js";
 
-// Optionally, re-export config types or loader functions if needed externally
+// Export configuration loading functions and related types.
+// These handle reading and validating server connection details from `mcp-config.json`.
 export {
-  getMcpServerConfig, loadMcpClientConfig, type McpServerConfigEntry
-} from './configLoader.js';
+  getMcpServerConfig,
+  loadMcpClientConfig,
+  type McpServerConfigEntry, // Export the type for a single server's config
+  type McpClientConfigFile, // Export the type for the entire config file structure
+} from "./configLoader.js";
 
-// Re-export transport functions, especially getClientTransport which now handles multiple types
-export { createStdioClientTransport, getClientTransport } from './transport.js';
+// Export transport creation functions.
+// `getClientTransport` acts as a factory based on the server's configured `transportType`.
+export { createStdioClientTransport, getClientTransport } from "./transport.js";

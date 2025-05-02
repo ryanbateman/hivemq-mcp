@@ -14,7 +14,7 @@
         "GIT_USERNAME": "example-user",
         "GIT_EMAIL": "user@example.com"
       },
-      "transportType": "stdio" // Explicitly set transport type
+      "transportType": "stdio" // Explicitly set transport type (default if omitted)
     },
     "github-mcp-server": {
       "command": "node",
@@ -25,5 +25,16 @@
         "GITHUB_TOKEN": "your-github-token"
       },
       "transportType": "stdio" // Explicitly set transport type
+    },
+    "example-http-server": {
+      // For HTTP transport, 'command' is the base URL of the server.
+      "command": "http://localhost:3010",
+      // 'args' are typically ignored for HTTP transport.
+      "args": [],
+      // 'env' is also typically ignored for HTTP transport as the server runs independently.
+      "env": {},
+      // Must specify 'http' for the transport type.
+      "transportType": "http"
     }
+  }
 }
