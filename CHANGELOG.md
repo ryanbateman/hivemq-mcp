@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4] - 2025-05-02
+
+### Changed
+
+- **MCP Client**: Updated the entire client implementation (`src/mcp-client/`) to align with the **MCP 2025-03-26 specification**. This includes:
+  - Correctly defining client identity and capabilities during initialization (`client.ts`).
+  - Adding comprehensive JSDoc comments explaining MCP concepts and implementation details across all client files (`client.ts`, `configLoader.ts`, `transport.ts`, `index.ts`).
+  - Resolving TypeScript errors related to SDK types and error codes.
+  - Enhancing error handling and type safety in connection and transport logic.
+  - Updating the example configuration (`mcp-config.json.example`) to include an HTTP transport example.
+- **Documentation**: Updated `README.md` to reflect the client changes, add the MCP spec version badge, and refine descriptions. Updated `docs/tree.md`.
+
 ## [1.1.3] - 2025-05-02
 
 ### Added
@@ -17,7 +29,6 @@ All notable changes to this project will be documented in this file.
 - **Stdio Transport**: Improved logging context and added comments referencing MCP specifications and authentication guidelines.
 - **Documentation**: Updated `README.md` with new version badges, authentication details, and configuration variable (`MCP_AUTH_SECRET_KEY`). Regenerated `docs/tree.md`.
 
-
 ## [1.1.2] - 2025-05-01
 
 ### Added
@@ -26,17 +37,7 @@ All notable changes to this project will be documented in this file.
 - **NPM Script**: Added `fetch-spec` script to `package.json` for running the new OpenAPI fetch script (`ts-node --esm scripts/fetch-openapi-spec.ts <url> <output-base-path>`).
 - **Dependencies**: Added `axios`, `js-yaml`, and `@types/js-yaml` as dev dependencies required by the new fetch script.
 
-### Changed
-
-- **Documentation**: Updated `README.md` (Detailed Features Table) and `.clinerules` (Utility Scripts section) to include details about the new `fetch-openapi-spec.ts` script and its usage.
-
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [1.1.1] - 2025-05-01
-
-### Changed
 
 - **Configuration Refactoring**: Centralized the handling of environment variables (`MCP_TRANSPORT_TYPE`, `MCP_HTTP_PORT`, `MCP_HTTP_HOST`, `MCP_ALLOWED_ORIGINS`, `MCP_SERVER_NAME`, `MCP_SERVER_VERSION`, `MCP_LOG_LEVEL`, `NODE_ENV`) within `src/config/index.ts` using Zod for validation and defaulting.
 - Updated `src/mcp-server/server.ts`, `src/mcp-server/transports/httpTransport.ts`, `src/index.ts`, and `src/utils/security/rateLimiter.ts` to consistently use the validated configuration object from `src/config/index.ts` instead of accessing `process.env` directly.
