@@ -13,6 +13,7 @@ The server can run using different communication transports, configured via envi
 - **`MCP_HTTP_HOST`**: Host address for the HTTP server (Default: `127.0.0.1`). Used only if `MCP_TRANSPORT_TYPE=http`.
 - **`MCP_ALLOWED_ORIGINS`**: Comma-separated list of allowed origins for HTTP requests (e.g., `http://localhost:8080,https://my-frontend.com`). Used only if `MCP_TRANSPORT_TYPE=http`.
 - **`MCP_LOG_LEVEL`**: Minimum logging level for the server (e.g., "debug", "info", "warning", "error", "notice", "crit", "alert", "emerg"). Defaults to "info". Affects both file logging and MCP notifications.
+- **`MCP_AUTH_SECRET_KEY`**: **Required for HTTP transport.** Secret key (min 32 chars) for signing/verifying auth tokens (JWT). Defaults to `undefined`. **MUST be set in production.**
 
 ### HTTP Transport Details (`MCP_TRANSPORT_TYPE=http`)
 
@@ -25,8 +26,8 @@ The server can run using different communication transports, configured via envi
 
 ### Running the Server
 
-- **Stdio**: `npm start` or `node dist/index.js`
-- **HTTP**: `MCP_TRANSPORT_TYPE=http npm start` or `MCP_TRANSPORT_TYPE=http node dist/index.js` (optionally set `MCP_HTTP_PORT`, `MCP_HTTP_HOST`, `MCP_ALLOWED_ORIGINS`, `MCP_LOG_LEVEL`).
+- **Stdio**: `npm run start:stdio'
+- **HTTP**: `npm run start:http` (optionally set `MCP_HTTP_PORT`, `MCP_HTTP_HOST`, `MCP_ALLOWED_ORIGINS`, `MCP_LOG_LEVEL`, `MCP_AUTH_SECRET_KEY`).
 
 ## Model Context Protocol (MCP) Overview (Spec: 2025-03-26)
 
@@ -134,9 +135,11 @@ Servers expose functionality via:
 ### Security Considerations
 
 - **Input Validation:** Use schemas (Zod), sanitize inputs (paths, HTML, SQL).
-- **Access Control:** Least privilege, respect roots, implement auth if needed.
-- **Transport Security:** Use HTTPS, validate `Origin`, bind to `127.0.0.1` locally, consider MCP Auth Spec.
-- **Secrets Management:** Use env vars or secrets managers, avoid hardcoding/logging.
+- **Access Control:** Least privilege, respect roots.
+- **Transport Security:**
+    - **HTTP:** Mandatory JWT authentication (`src/mcp-server/transports/authentication/authMiddleware.ts`). **Requires `MCP_AUTH_SECRET_KEY` to be set.** Validate `Origin` header (via `isOriginAllowed` in `httpTransport.ts`). Use HTTPS in production. Bind to `127.0.0.1` for local servers.
+    - **Stdio:** Authentication typically handled by the host process. Best practice is to not apply authentication to MCP Server stdio processes.
+- **Secrets Management:** Use env vars (`MCP_AUTH_SECRET_KEY`) or secrets managers, avoid hardcoding/logging.
 - **Dependency Security:** Keep dependencies updated (`npm audit`).
 - **Rate Limiting:** Protect against abuse.
 
@@ -420,6 +423,7 @@ This project includes several utility scripts located in the `scripts/` director
 
 - **Main Entry**: `src/index.ts` (Initializes server, handles startup/shutdown)
 - **Server Setup**: `src/mcp-server/server.ts` (Handles transport logic (stdio/http), session management (http), registers tools/resources)
+- **HTTP Auth Middleware**: `src/mcp-server/transports/authentication/authMiddleware.ts`
 - **Configuration**: `src/config/index.ts` (Loads env vars, package info, initializes logger)
 - **Global Types**: `src/types-global/`
 - **Utilities**: `src/utils/` (Main barrel file `index.ts` exporting from subdirs: `internal`, `metrics`, `parsing`, `security`)
