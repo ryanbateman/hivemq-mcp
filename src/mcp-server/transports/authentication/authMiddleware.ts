@@ -140,14 +140,22 @@ export function mcpAuthMiddleware(req: Request, res: Response, next: NextFunctio
     if (error instanceof jwt.TokenExpiredError) {
       // Specific error for expired tokens.
       errorMessage = 'Token expired';
+      // After instanceof check, 'error' is typed as TokenExpiredError
       logger.warning('Authentication failed: Token expired.', { ...context, expiredAt: error.expiredAt });
     } else if (error instanceof jwt.JsonWebTokenError) {
       // General JWT errors (e.g., invalid signature, malformed token).
-      errorMessage = 'Invalid token signature or format';
-      logger.warning(`Authentication failed: ${error.message}`, { ...context }); // Log the specific JWT error message.
-    } else {
-      // Handle unexpected errors during verification.
-      logger.error('Authentication failed: Unexpected error during token verification.', { ...context, error });
+      // After instanceof check, 'error' is typed as JsonWebTokenError
+      errorMessage = `Invalid token: ${error.message}`; // Include specific JWT error message
+      logger.warning(`Authentication failed: ${errorMessage}`, { ...context });
+    } else if (error instanceof Error) {
+        // Handle other standard JavaScript errors
+        errorMessage = `Verification error: ${error.message}`;
+        logger.error('Authentication failed: Unexpected error during token verification.', { ...context, error: error.message });
+    }
+     else {
+      // Handle non-Error exceptions
+      errorMessage = 'Unknown verification error';
+      logger.error('Authentication failed: Unexpected non-error exception during token verification.', { ...context, error });
     }
     // Respond with 401 Unauthorized for any token validation failure.
     res.status(401).json({ error: `Unauthorized: ${errorMessage}.` });
