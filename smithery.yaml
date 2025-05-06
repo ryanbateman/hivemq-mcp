@@ -1,0 +1,11 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}  # No specific configuration parameters needed for this template
+  commandFunction: |
+    (config) => ({
+      "command": "node",
+      "args": ["dist/index.js"],
+      "env": {} # No environment variables needed from the config object
+    })
