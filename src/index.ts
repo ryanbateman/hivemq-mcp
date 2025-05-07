@@ -67,8 +67,10 @@ const start = async () => {
   if (validMcpLogLevels.includes(initialLogLevelConfig as McpLogLevel)) {
     validatedMcpLogLevel = initialLogLevelConfig as McpLogLevel;
   } else {
-    // Use console.warn here as logger isn't initialized yet
-    console.warn(`Invalid MCP_LOG_LEVEL "${initialLogLevelConfig}" provided via config/env. Defaulting to "info".`);
+    // Use console.warn here as logger isn't initialized yet, only if TTY
+    if (process.stdout.isTTY) {
+      console.warn(`Invalid MCP_LOG_LEVEL "${initialLogLevelConfig}" provided via config/env. Defaulting to "info".`);
+    }
   }
   // Initialize the logger with the validated MCP level and wait for it to complete.
   await logger.initialize(validatedMcpLogLevel);

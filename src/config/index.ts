@@ -19,7 +19,9 @@ try {
 } catch (error) {
   // Silently use default pkg info if reading fails.
   // Consider adding logging here if robust error handling is needed.
-  console.error("Warning: Could not read package.json for default config values.", error);
+  if (process.stdout.isTTY) {
+    console.error("Warning: Could not read package.json for default config values.", error);
+  }
 }
 
 // Define a schema for environment variables for validation and type safety
@@ -39,7 +41,9 @@ const EnvSchema = z.object({
 const parsedEnv = EnvSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error("❌ Invalid environment variables:", parsedEnv.error.flatten().fieldErrors);
+  if (process.stdout.isTTY) {
+    console.error("❌ Invalid environment variables:", parsedEnv.error.flatten().fieldErrors);
+  }
   // Decide if the application should exit or continue with defaults
   // For critical configs, you might want to throw an error:
   // throw new Error("Invalid environment configuration.");

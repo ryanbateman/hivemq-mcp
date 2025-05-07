@@ -74,7 +74,10 @@ class Logger {
    */
   public async initialize(level: McpLogLevel = 'info'): Promise<void> {
     if (this.initialized) {
-      console.warn('Logger already initialized.');
+      // Avoid console.warn in stdio mode, this will be logged via this.info later if needed.
+      if (process.stdout.isTTY) {
+        console.warn('Logger already initialized.');
+      }
       return;
     }
     this.currentMcpLevel = level;
@@ -85,7 +88,10 @@ class Logger {
       try {
         if (!fs.existsSync(resolvedLogsDir)) {
           fs.mkdirSync(resolvedLogsDir, { recursive: true });
-          console.log(`Created logs directory: ${resolvedLogsDir}`);
+          // Avoid console.log in stdio mode. This info will be part of the initialization log message.
+          // if (process.stdout.isTTY) {
+          //   console.log(`Created logs directory: ${resolvedLogsDir}`);
+          // }
         }
       } catch (err: any) {
         console.error(
@@ -113,7 +119,10 @@ class Logger {
         new winston.transports.File({ filename: path.join(resolvedLogsDir, 'combined.log'), format: fileFormat })
       );
     } else {
-       console.warn("File logging disabled due to unsafe logs directory path.");
+      // Avoid console.warn in stdio mode. This info will be part of the initialization log message.
+      // if (process.stdout.isTTY) {
+      //    console.warn("File logging disabled due to unsafe logs directory path.");
+      // }
     }
 
     // Conditionally add Console transport only if:
@@ -147,9 +156,12 @@ class Logger {
         level: 'debug',
         format: consoleFormat,
       }));
-      console.log(`Console logging enabled at level: debug (stdout is TTY)`);
+      // This log will go through winston itself if console transport is added.
+      // If not, it shouldn't go to console.
+      // console.log(`Console logging enabled at level: debug (stdout is TTY)`);
     } else if (this.currentMcpLevel === 'debug' && !process.stdout.isTTY) {
-        console.log(`Console logging skipped: Level is debug, but stdout is not a TTY (likely stdio transport).`);
+        // Avoid console.log in stdio mode. This info will be part of the initialization log message.
+        // console.log(`Console logging skipped: Level is debug, but stdout is not a TTY (likely stdio transport).`);
     }
 
     // Create logger with the initial Winston level and configured transports
@@ -222,7 +234,10 @@ class Logger {
   /** Ensures the logger has been initialized. */
   private ensureInitialized(): boolean {
     if (!this.initialized || !this.winstonLogger) {
-      console.warn('Logger not initialized; message dropped.');
+      // Avoid console.warn in stdio mode.
+      // if (process.stdout.isTTY) {
+      //   console.warn('Logger not initialized; message dropped.');
+      // }
       return false;
     }
     return true;
