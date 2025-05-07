@@ -29,9 +29,23 @@ Whether you're creating a new MCP server to extend an AI's capabilities or integ
 
 _For a more granular breakdown, see the [Detailed Features Table](#detailed-features-table) below._
 
+## 🚀 Projects Using This Template
+
+This template is already powering several MCP servers, demonstrating its flexibility and robustness:
+
+| Project                                                                                                   | Description                                                                                                                                                                                                                  | Status / Notes                                                                                                                           |
+| :-------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| [**git-mcp-server**](https://github.com/cyanheads/git-mcp-server)                                         | Provides an enterprise-ready MCP interface for Git operations. Allows LLM agents to initialize, clone, branch, commit, and manage repositories via STDIO & Streamable HTTP.                                                  | Actively using this template.                                                                                                            |
+| [**obsidian-mcp-server**](https://github.com/cyanheads/obsidian-mcp-server/tree/mcp-ts-template-refactor) | Enables LLMs to interact securely with Obsidian vaults via MCP. Offers token-aware tools for searching, navigating, and updating Obsidian notes, facilitating seamless knowledge base management with Properties management. | Refactor in progress using this template ([see branch](https://github.com/cyanheads/obsidian-mcp-server/tree/mcp-ts-template-refactor)). |
+| [**filesystem-mcp-server**](https://github.com/cyanheads/filesystem-mcp-server)                           | Offers platform-agnostic file system capabilities for AI agents via MCP. Enables reading, writing, updating, and managing files/directories, featuring advanced search/replace and directory traversal.                      | Actively using this template.                                                                                                            |
+
+_Note: [**toolkit-mcp-server**](https://github.com/cyanheads/toolkit-mcp-server) and [**atlas-mcp-server**](https://github.com/cyanheads/atlas-mcp-server) were initially built using an older version of this template and are pending updates to the latest structure._
+
+You can also **see my [GitHub profile](https://github.com/cyanheads/)** for additional MCP servers I've created, many of which are planned to be migrated to or built upon this template in the future.
+
 ## 📋 Table of Contents
 
-[Features](#key-features) | [Quick Start](#quick-start) | [Configuration](#configuration) | [Adding Tools/Resources](#adding-your-own-tools--resources) | [Project Structure](#project-structure) | [More MCP Resources](#explore-more-mcp-resources) | [License](#license) | [Detailed Features](#detailed-features-table)
+[✨ Key Features](#-key-features) | [🚀 Projects Using This Template](#-projects-using-this-template) | [🚀 Quick Start](#quick-start) | [⚙️ Configuration](#️-configuration) | [Server Configuration](#server-configuration-environment-variables) | [Client Configuration](#client-configuration-mcp-configjson) | [🏗️ Project Structure](#️-project-structure) | [🧩 Adding Tools/Resources](#-adding-your-own-tools--resources) | [🌍 More MCP Resources](#-explore-more-mcp-resources) | [📜 License](#-license) | [Detailed Features](#detailed-features-table)
 
 ## Quick Start
 
@@ -62,12 +76,11 @@ Get the example server running in minutes:
     - **Via Stdio (Default):** Many MCP host applications will run this automatically using `stdio`. To run manually for testing:
       ```bash
       npm start
-      # or directly: node dist/index.js
+      # or 'npm run start:stdio'
       ```
     - **Via HTTP (SSE):**
       ```bash
       npm run start:http
-      # or directly: MCP_TRANSPORT_TYPE=http node dist/index.js
       ```
       This starts an HTTP server (default: `http://127.0.0.1:3010`) using Server-Sent Events. The port, host, and allowed origins are configurable via environment variables (see [Configuration](#configuration)).
 
@@ -78,7 +91,7 @@ Get the example server running in minutes:
 Configure the MCP server's behavior using these environment variables:
 
 | Variable              | Description                                                                                         | Default                                |
-| --------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| :-------------------- | :-------------------------------------------------------------------------------------------------- | :------------------------------------- |
 | `MCP_TRANSPORT_TYPE`  | Server transport: `stdio` or `http`.                                                                | `stdio`                                |
 | `MCP_HTTP_PORT`       | Port for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                            | `3010`                                 |
 | `MCP_HTTP_HOST`       | Host address for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                    | `127.0.0.1`                            |
@@ -180,16 +193,10 @@ This collection includes servers for Filesystem, Obsidian, Git, GitHub, Perplexi
 
 This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
----
-
-<div align="center">
-Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Context Protocol</a>
-</div>
-
 ## Detailed Features Table
 
 | Category                 | Feature                         | Description                                                                                                  | Location(s)                                      |
-| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| :----------------------- | :------------------------------ | :----------------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
 | **Core Components**      | MCP Server                      | Core server logic, tool/resource registration, transport handling. Includes Echo Tool & Resource examples.   | `src/mcp-server/`                                |
 |                          | MCP Client                      | Logic for connecting to external MCP servers (updated to **MCP 2025-03-26 spec**).                           | `src/mcp-client/`                                |
 |                          | Configuration                   | Environment-aware settings with Zod validation.                                                              | `src/config/`, `src/mcp-client/configLoader.ts`  |
@@ -218,3 +225,9 @@ Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Conte
 |                          | Make Executable Script          | Sets executable permissions (`chmod +x`) on specified files (Unix-like only).                                | `scripts/make-executable.ts`                     |
 |                          | Tree Script                     | Generates a directory structure tree, respecting `.gitignore`.                                               | `scripts/tree.ts`                                |
 |                          | Fetch OpenAPI Spec Script       | Fetches an OpenAPI spec (YAML/JSON) from a URL with fallbacks, saves locally.                                | `scripts/fetch-openapi-spec.ts`                  |
+
+---
+
+<div align="center">
+Built with ❤️ and the <a href="https://modelcontextprotocol.io/">Model Context Protocol</a>
+</div>
