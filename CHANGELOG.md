@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.6] - 2025-05-07
+
+### Added
+- **Scripts**: Added `inspector` script to `package.json` for use with `mcp-inspector`.
+
+### Changed
+- **Dependencies**: Updated several direct and development dependencies:
+  - `@types/node`: `^22.15.3` -> `^22.15.15`
+  - `@types/sanitize-html`: `^2.15.0` -> `^2.16.0`
+  - `openai`: `^4.96.2` -> `^4.97.0`
+  - `zod`: `^3.24.3` -> `^3.24.4`
+  - `typedoc` (devDependency): `^0.28.3` -> `^0.28.4`
+- **Logging**: Refactored logging behavior across `src/config/index.ts`, `src/index.ts`, `src/mcp-server/transports/stdioTransport.ts`, and `src/utils/internal/logger.ts` to make console output (warnings, info messages) conditional on `stdout` being a TTY. This prevents interference with the MCP protocol when running in `stdio` transport mode.
+- **Build**: Bumped project version to `1.1.6` in `package.json` and `package-lock.json`.
+
 ## [1.1.5] - 2025-05-07
 
 ### Changed
