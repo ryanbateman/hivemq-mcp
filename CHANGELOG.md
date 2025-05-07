@@ -5,10 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [1.1.6] - 2025-05-07
 
 ### Added
+
 - **Scripts**: Added `inspector` script to `package.json` for use with `mcp-inspector`.
 - **Configuration**: Added `mcp.json` (MCP client/server configuration file) to version control.
 
 ### Changed
+
 - **Dependencies**: Updated several direct and development dependencies:
   - `@types/node`: `^22.15.3` -> `^22.15.15`
   - `@types/sanitize-html`: `^2.15.0` -> `^2.16.0`
