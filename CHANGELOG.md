@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Scripts**: Added `inspector` script to `package.json` for use with `mcp-inspector`.
+- **Configuration**: Added `mcp.json` (MCP client/server configuration file) to version control.
 
 ### Changed
 - **Dependencies**: Updated several direct and development dependencies:
