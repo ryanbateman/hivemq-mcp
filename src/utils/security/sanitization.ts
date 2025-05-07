@@ -18,6 +18,22 @@ export interface PathSanitizeOptions {
 }
 
 /**
+ * Information returned by the sanitizePath method.
+ */
+export interface SanitizedPathInfo {
+  /** The final sanitized path string. */
+  sanitizedPath: string;
+  /** The original path string passed to the function. */
+  originalInput: string;
+  /** Indicates if the original input path was determined to be absolute after initial normalization. */
+  wasAbsolute: boolean;
+  /** Indicates if an absolute path was converted to relative due to the `allowAbsolute: false` option. */
+  convertedToRelative: boolean;
+  /** The options that were used for sanitization. */
+  optionsUsed: PathSanitizeOptions;
+}
+
+/**
  * Context-specific input sanitization options
  */
 export interface SanitizeStringOptions {
@@ -223,10 +239,14 @@ export class Sanitization {
    * Sanitize file paths to prevent path traversal attacks
    * @param input Path to sanitize
    * @param options Options for path sanitization
-   * @returns Sanitized and normalized path
+   * @returns SanitizedPathInfo object containing the sanitized path and metadata
    * @throws {McpError} If path is invalid or unsafe
    */
-  public sanitizePath(input: string, options: PathSanitizeOptions = {}): string {
+  public sanitizePath(input: string, options: PathSanitizeOptions = {}): SanitizedPathInfo {
+    const originalInput = input;
+    let wasAbsoluteInitially = false;
+    let convertedToRelative = false;
+
     try {
       if (!input || typeof input !== 'string') {
         throw new Error('Invalid path input: must be a non-empty string');
@@ -234,6 +254,7 @@ export class Sanitization {
       
       // Apply path normalization using built-in path module
       let normalized = path.normalize(input);
+      wasAbsoluteInitially = path.isAbsolute(normalized);
       
       // Prevent null byte injection
       if (normalized.includes('\0')) {
@@ -246,9 +267,10 @@ export class Sanitization {
       }
       
       // Handle absolute paths based on allowAbsolute option
-      if (!options.allowAbsolute && path.isAbsolute(normalized)) {
+      if (!options.allowAbsolute && wasAbsoluteInitially) {
         // Remove leading slash or drive letter to make it relative
         normalized = normalized.replace(/^(?:[A-Za-z]:)?[/\\]/, '');
+        convertedToRelative = true;
       }
       
       // If rootDir is specified, ensure the path doesn't escape it
@@ -264,8 +286,14 @@ export class Sanitization {
           throw new Error('Path traversal detected');
         }
         
-        // Return the path relative to the root
-        return path.relative(rootDir, fullPath);
+        // Return the path relative to the root, wrapped in SanitizedPathInfo
+        return {
+          sanitizedPath: path.relative(rootDir, fullPath),
+          originalInput,
+          wasAbsolute: wasAbsoluteInitially,
+          convertedToRelative, // This might need adjustment if rootDir logic changes absoluteness
+          optionsUsed: options
+        };
       }
       
       // Final validation - check for relative path traversal attempts if not rooted
@@ -278,10 +306,16 @@ export class Sanitization {
          }
       }
       
-       return normalized;
-     } catch (error) {
+      return {
+        sanitizedPath: normalized,
+        originalInput,
+        wasAbsolute: wasAbsoluteInitially,
+        convertedToRelative,
+        optionsUsed: options
+      };
+    } catch (error) {
       logger.warning('Path sanitization error', {
-        input,
+        input: originalInput, // Log original input in case of error
         error: error instanceof Error ? error.message : String(error)
       });
       
