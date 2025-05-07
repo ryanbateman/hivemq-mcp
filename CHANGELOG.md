@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.5] - 2025-05-07
+
+### Changed
+
+- **Security**: Enhanced the `Sanitization` utility class (`src/utils/security/sanitization.ts`):
+  - Improved JSDoc comments for all methods, providing more detailed explanations of functionality, parameters, and return values.
+  - Refined the `sanitizePath` method for more robust and flexible path sanitization:
+    - Added `PathSanitizeOptions` to control behavior like POSIX path conversion (`toPosix`), allowing/disallowing absolute paths (`allowAbsolute`), and restricting to a `rootDir`.
+    - Returns a `SanitizedPathInfo` object containing the sanitized path, original input, and details about the sanitization process (e.g., if an absolute path was converted to relative).
+    - Improved logic for handling root directory constraints and preventing path traversal.
+  - Clarified options and behavior for `sanitizeString` and `sanitizeNumber` methods.
+  - Ensured consistent error handling and logging within sanitization methods, providing more context on failures.
+- **Build**: Bumped project version to `1.1.5` in `package.json`, `package-lock.json`, and `README.md`.
+
 ## [1.1.4] - 2025-05-02
 
 ### Changed
