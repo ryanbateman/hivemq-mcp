@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-06 00:13:28
+Generated on: 2025-05-07 21:04:54
 
 
 ```
@@ -70,6 +70,7 @@ mcp-ts-template
 ├── CHANGELOG.md
 ├── Dockerfile
 ├── LICENSE
+├── mcp.json
 ├── package-lock.json
 ├── package.json
 ├── README.md
