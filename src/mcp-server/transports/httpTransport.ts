@@ -443,8 +443,10 @@ export async function startHttpTransport(
     // Determine protocol for logging (basic assumption based on HSTS possibility)
     const protocol = config.environment === 'production' ? 'https' : 'http';
     const serverAddress = `${protocol}://${config.mcpHttpHost}:${actualPort}${MCP_ENDPOINT_PATH}`;
-    // Use console.log for prominent startup message.
-    console.log(`\n🚀 MCP Server running in HTTP mode at: ${serverAddress}\n   (MCP Spec: 2025-03-26 Streamable HTTP Transport)\n`);
+    // Use console.log for prominent startup message only if TTY.
+    if (process.stdout.isTTY) {
+      console.log(`\n🚀 MCP Server running in HTTP mode at: ${serverAddress}\n   (MCP Spec: 2025-03-26 Streamable HTTP Transport)\n`);
+    }
   } catch (err) {
     logger.fatal('HTTP server failed to start after multiple port retries.', { ...transportContext, error: err instanceof Error ? err.message : String(err) });
     throw err; // Propagate error to stop the application

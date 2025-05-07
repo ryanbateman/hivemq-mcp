@@ -19,7 +19,7 @@ try {
 } catch (error) {
   // Silently use default pkg info if reading fails.
   // Consider adding logging here if robust error handling is needed.
-  if (process.stdout.isTTY) {
+  if (process.stdout.isTTY) { // Guarded console.error
     console.error("Warning: Could not read package.json for default config values.", error);
   }
 }

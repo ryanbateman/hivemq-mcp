@@ -47,10 +47,14 @@ const logsDir = path.join(projectRoot, 'logs');
 const resolvedLogsDir = path.resolve(logsDir);
 const isLogsDirSafe = resolvedLogsDir === projectRoot || resolvedLogsDir.startsWith(projectRoot + path.sep);
 if (!isLogsDirSafe) {
-  // Use console.error here as logger might not be initialized or safe
-  console.error(
-    `FATAL: logs directory "${resolvedLogsDir}" is outside project root "${projectRoot}". File logging disabled.`
-  );
+  if (process.stdout.isTTY) {
+    // Use console.error here as logger might not be initialized or safe, but only if TTY
+    console.error(
+      `FATAL: logs directory "${resolvedLogsDir}" is outside project root "${projectRoot}". File logging disabled.`
+    );
+  }
+  // If not TTY, this critical error will be logged to a file if possible by the initialized logger later,
+  // or an MCP notification if configured. Suppressing direct console output here for stdio clients.
 }
 
 /**
@@ -74,10 +78,11 @@ class Logger {
    */
   public async initialize(level: McpLogLevel = 'info'): Promise<void> {
     if (this.initialized) {
-      // Avoid console.warn in stdio mode, this will be logged via this.info later if needed.
       if (process.stdout.isTTY) {
+        // This warning is only relevant for interactive sessions.
         console.warn('Logger already initialized.');
       }
+      // If already initialized, subsequent info log will indicate this.
       return;
     }
     this.currentMcpLevel = level;
@@ -94,9 +99,12 @@ class Logger {
           // }
         }
       } catch (err: any) {
-        console.error(
-          `Error creating logs directory at ${resolvedLogsDir}: ${err.message}. File logging disabled.`
-        );
+        if (process.stdout.isTTY) {
+          console.error(
+            `Error creating logs directory at ${resolvedLogsDir}: ${err.message}. File logging disabled.`
+          );
+        }
+        // This error will be logged to file/MCP by the logger instance if it initializes successfully.
       }
     }
 
@@ -190,7 +198,9 @@ class Logger {
    */
   public setLevel(newLevel: McpLogLevel): void {
     if (!this.ensureInitialized()) {
-      console.error("Cannot set level: Logger not initialized.");
+      if (process.stdout.isTTY) {
+        console.error("Cannot set level: Logger not initialized.");
+      }
       return;
     }
     if (!(newLevel in mcpLevelSeverity)) {

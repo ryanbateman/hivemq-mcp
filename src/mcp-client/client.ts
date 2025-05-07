@@ -217,7 +217,6 @@ export async function connectMcpClient(
       operation: `connecting to MCP server ${serverName}`,
       context: operationContext,
       errorCode: BaseErrorCode.INTERNAL_ERROR, // Use INTERNAL_ERROR as fallback for connection issues
-      rethrow: true, // Rethrow the McpError for the caller to handle
     }
   );
 }

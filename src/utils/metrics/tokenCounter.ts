@@ -38,7 +38,6 @@ export async function countTokens(
       context: context,
       input: { textSample: text.substring(0, 50) + '...' }, // Log sanitized input
       errorCode: BaseErrorCode.INTERNAL_ERROR, // Use INTERNAL_ERROR for external lib issues
-      rethrow: true // Rethrow as McpError
       // Removed onErrorReturn as we now rethrow
     }
   );
@@ -134,7 +133,6 @@ export async function countChatTokens(
       context: context,
       input: { messageCount: messages.length }, // Log sanitized input
       errorCode: BaseErrorCode.INTERNAL_ERROR, // Use INTERNAL_ERROR
-      rethrow: true // Rethrow as McpError
       // Removed onErrorReturn
     }
   );
