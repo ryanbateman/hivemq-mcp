@@ -101,6 +101,15 @@ Configure the MCP server's behavior using these environment variables:
 | `MCP_LOG_LEVEL`       | Server logging level (`debug`, `info`, `warning`, `error`, etc.).                                   | `info`                                 |
 | `NODE_ENV`            | Runtime environment (`development`, `production`).                                                  | `development`                          |
 | `MCP_AUTH_SECRET_KEY` | **Required for HTTP transport.** Secret key (min 32 chars) for signing/verifying auth tokens (JWT). | (none - **MUST be set in production**) |
+| `APP_URL`             | URL of the application (used by OpenRouter service for HTTP Referer).                               | `http://localhost:3000`                |
+| `APP_NAME`            | Name of the application (used by OpenRouter service for X-Title header).                            | (from package.json or 'MCP TS App')    |
+| `OPENROUTER_API_KEY`  | API key for OpenRouter.ai service. Optional, but service will be unconfigured without it.           | (none)                                 |
+| `LLM_DEFAULT_MODEL`   | Default model to use for LLM calls via OpenRouter.                                                  | `openrouter/auto`                      |
+| `LLM_DEFAULT_TEMPERATURE` | Default temperature for LLM calls (0-2). Optional.                                              | (none)                                 |
+| `LLM_DEFAULT_TOP_P`   | Default top_p for LLM calls (0-1). Optional.                                                        | (none)                                 |
+| `LLM_DEFAULT_MAX_TOKENS` | Default max_tokens for LLM calls. Optional.                                                      | (none)                                 |
+| `LLM_DEFAULT_TOP_K`   | Default top_k for LLM calls (non-negative integer). Optional.                                       | (none)                                 |
+| `LLM_DEFAULT_MIN_P`   | Default min_p for LLM calls (0-1). Optional.                                                        | (none)                                 |
 
 **Note on HTTP Port Retries:** If the `MCP_HTTP_PORT` is busy, the server automatically tries the next port (up to 15 times).
 
@@ -211,6 +220,7 @@ This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE
 | **Utilities (Security)** | IdGenerator                     | Generates unique IDs (prefixed or UUIDs).                                                                    | `src/utils/security/idGenerator.ts`              |
 |                          | RateLimiter                     | Request throttling based on keys.                                                                            | `src/utils/security/rateLimiter.ts`              |
 |                          | Sanitization                    | Input validation/cleaning (HTML, paths, URLs, numbers, JSON) & log redaction (`validator`, `sanitize-html`). | `src/utils/security/sanitization.ts`             |
+| **Services**             | OpenRouter Provider             | Service for interacting with OpenRouter API via OpenAI SDK compatibility.                                    | `src/services/openRouterProvider.ts`           |
 | **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP types).                                 | `src/types-global/`                              |
 |                          | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.                                  | Throughout (`config`, `mcp-client`, tools, etc.) |
 | **Error Handling**       | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                   | `src/utils/internal/errorHandler.ts`             |

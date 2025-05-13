@@ -28,7 +28,9 @@ export enum BaseErrorCode {
   /** An error occurred, but the specific cause is unknown or cannot be categorized. */
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
   /** An error occurred during the loading or validation of configuration data. */
-  CONFIGURATION_ERROR = 'CONFIGURATION_ERROR'
+  CONFIGURATION_ERROR = 'CONFIGURATION_ERROR',
+  /** An error occurred during the initialization phase of a service or module. */
+  INITIALIZATION_FAILED = 'INITIALIZATION_FAILED'
 }
 
 /**
