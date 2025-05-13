@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.8] - 2025-05-12
+
+### Added
+
+- **Service**: Integrated OpenRouter service (`src/services/openRouterProvider.ts`) for leveraging various Large Language Models.
+- **Configuration**:
+    - Added new environment variables to `src/config/index.ts` for OpenRouter and LLM customization: `APP_URL`, `APP_NAME`, `OPENROUTER_API_KEY`, `LLM_DEFAULT_MODEL`, `LLM_DEFAULT_TEMPERATURE`, `LLM_DEFAULT_TOP_P`, `LLM_DEFAULT_MAX_TOKENS`, `LLM_DEFAULT_TOP_K`, `LLM_DEFAULT_MIN_P`.
+- **Error Handling**: Introduced `INITIALIZATION_FAILED` error code to `src/types-global/errors.ts` for better service initialization diagnostics.
+
+### Changed
+
+- **Dependencies**:
+    - Updated `@modelcontextprotocol/sdk` to `^1.11.2`.
+    - Updated `@types/node` to `^22.15.17`.
+    - Updated `openai` to `^4.98.0`.
+- **Documentation**:
+    - Updated `README.md` to document new OpenRouter environment variables and add the OpenRouter Provider to the project features table.
+    - Refreshed `docs/tree.md` to reflect the current directory structure.
+
 ## [1.1.7] - 2025-05-07
 
 ### Added
