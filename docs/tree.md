@@ -1,11 +1,10 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-07 21:04:54
+Generated on: 2025-05-13 02:51:33
 
 
 ```
 mcp-ts-template
-├── backups
 ├── docs
     ├── .DS_Store
     └── tree.md
