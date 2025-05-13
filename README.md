@@ -3,7 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.3-blue.svg)](https://www.typescriptlang.org/)
 [![Model Context Protocol SDK](https://img.shields.io/badge/MCP%20SDK-1.11.0-green.svg)](https://github.com/modelcontextprotocol/typescript-sdk)
 [![MCP Spec Version](https://img.shields.io/badge/MCP%20Spec-2025--03--26-lightgrey.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-03-26/changelog.mdx)
-[![Version](https://img.shields.io/badge/Version-1.1.8-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.1.9-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
@@ -90,26 +90,26 @@ Get the example server running in minutes:
 
 Configure the MCP server's behavior using these environment variables:
 
-| Variable                  | Description                                                                                         | Default                                |
-| :------------------------ | :-------------------------------------------------------------------------------------------------- | :------------------------------------- |
-| `MCP_TRANSPORT_TYPE`      | Server transport: `stdio` or `http`.                                                                | `stdio`                                |
-| `MCP_HTTP_PORT`           | Port for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                            | `3010`                                 |
-| `MCP_HTTP_HOST`           | Host address for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                    | `127.0.0.1`                            |
-| `MCP_ALLOWED_ORIGINS`     | Comma-separated allowed origins for CORS (if `MCP_TRANSPORT_TYPE=http`).                            | (none)                                 |
-| `MCP_SERVER_NAME`         | Optional server name (used in MCP initialization).                                                  | (from package.json)                    |
-| `MCP_SERVER_VERSION`      | Optional server version (used in MCP initialization).                                               | (from package.json)                    |
-| `MCP_LOG_LEVEL`           | Server logging level (`debug`, `info`, `warning`, `error`, etc.).                                   | `info`                                 |
-| `NODE_ENV`                | Runtime environment (`development`, `production`).                                                  | `development`                          |
-| `MCP_AUTH_SECRET_KEY`     | **Required for HTTP transport.** Secret key (min 32 chars) for signing/verifying auth tokens (JWT). | (none - **MUST be set in production**) |
-| `APP_URL`                 | URL of the application (used by OpenRouter service for HTTP Referer).                               | `http://localhost:3000`                |
-| `APP_NAME`                | Name of the application (used by OpenRouter service for X-Title header).                            | (from package.json or 'MCP TS App')    |
-| `OPENROUTER_API_KEY`      | API key for OpenRouter.ai service. Optional, but service will be unconfigured without it.           | (none)                                 |
-| `LLM_DEFAULT_MODEL`       | Default model to use for LLM calls via OpenRouter.                                                  | `openrouter/auto`                      |
-| `LLM_DEFAULT_TEMPERATURE` | Default temperature for LLM calls (0-2). Optional.                                                  | (none)                                 |
-| `LLM_DEFAULT_TOP_P`       | Default top_p for LLM calls (0-1). Optional.                                                        | (none)                                 |
-| `LLM_DEFAULT_MAX_TOKENS`  | Default max_tokens for LLM calls. Optional.                                                         | (none)                                 |
-| `LLM_DEFAULT_TOP_K`       | Default top_k for LLM calls (non-negative integer). Optional.                                       | (none)                                 |
-| `LLM_DEFAULT_MIN_P`       | Default min_p for LLM calls (0-1). Optional.                                                        | (none)                                 |
+| Variable                  | Description                                                                                         | Default                                    |
+| :------------------------ | :-------------------------------------------------------------------------------------------------- | :----------------------------------------- |
+| `MCP_TRANSPORT_TYPE`      | Server transport: `stdio` or `http`.                                                                | `stdio`                                    |
+| `MCP_HTTP_PORT`           | Port for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                            | `3010`                                     |
+| `MCP_HTTP_HOST`           | Host address for the HTTP server (if `MCP_TRANSPORT_TYPE=http`).                                    | `127.0.0.1`                                |
+| `MCP_ALLOWED_ORIGINS`     | Comma-separated allowed origins for CORS (if `MCP_TRANSPORT_TYPE=http`).                            | (none)                                     |
+| `MCP_SERVER_NAME`         | Optional server name (used in MCP initialization).                                                  | (from package.json)                        |
+| `MCP_SERVER_VERSION`      | Optional server version (used in MCP initialization).                                               | (from package.json)                        |
+| `MCP_LOG_LEVEL`           | Server logging level (`debug`, `info`, `warning`, `error`, etc.).                                   | `info`                                     |
+| `NODE_ENV`                | Runtime environment (`development`, `production`).                                                  | `development`                              |
+| `MCP_AUTH_SECRET_KEY`     | **Required for HTTP transport.** Secret key (min 32 chars) for signing/verifying auth tokens (JWT). | (none - **MUST be set in production**)     |
+| `OPENROUTER_APP_URL`      | URL of the application (used by OpenRouter service for HTTP Referer).                               | `https://caseyjhand.com`                   |
+| `OPENROUTER_APP_NAME`     | Name of the application (used by OpenRouter service for X-Title header).                            | 'mcp-ts-template'                          |
+| `OPENROUTER_API_KEY`      | API key for OpenRouter.ai service. Optional, but service will be unconfigured without it.           | (none)                                     |
+| `LLM_DEFAULT_MODEL`       | Default model to use for LLM calls via OpenRouter.                                                  | `google/gemini-2.5-flash-preview:thinking` |
+| `LLM_DEFAULT_TEMPERATURE` | Default temperature for LLM calls (0-2). Optional.                                                  | (none)                                     |
+| `LLM_DEFAULT_TOP_P`       | Default top_p for LLM calls (0-1). Optional.                                                        | (none)                                     |
+| `LLM_DEFAULT_MAX_TOKENS`  | Default max_tokens for LLM calls. Optional.                                                         | (none)                                     |
+| `LLM_DEFAULT_TOP_K`       | Default top_k for LLM calls (non-negative integer). Optional.                                       | (none)                                     |
+| `LLM_DEFAULT_MIN_P`       | Default min_p for LLM calls (0-1). Optional.                                                        | (none)                                     |
 
 **Note on HTTP Port Retries:** If the `MCP_HTTP_PORT` is busy, the server automatically tries the next port (up to 15 times).
 

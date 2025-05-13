@@ -37,10 +37,10 @@ const EnvSchema = z.object({
   MCP_AUTH_SECRET_KEY: z.string().min(32, "MCP_AUTH_SECRET_KEY must be at least 32 characters long for security").optional(), // Secret for signing/verifying tokens
 
   // OpenRouter and LLM specific configurations
-  APP_URL: z.string().url("APP_URL must be a valid URL").optional(),
-  APP_NAME: z.string().optional(),
+  OPENROUTER_APP_URL: z.string().url("OPENROUTER_APP_URL must be a valid URL").optional(),
+  OPENROUTER_APP_NAME: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
-  LLM_DEFAULT_MODEL: z.string().default('openrouter/auto'),
+  LLM_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash-preview:thinking'),
   LLM_DEFAULT_TEMPERATURE: z.coerce.number().min(0).max(2).optional(),
   LLM_DEFAULT_TOP_P: z.coerce.number().min(0).max(1).optional(),
   LLM_DEFAULT_MAX_TOKENS: z.coerce.number().int().positive().optional(),
@@ -133,8 +133,8 @@ export const config = {
   mcpAuthSecretKey: env.MCP_AUTH_SECRET_KEY,
 
   // OpenRouter and LLM specific properties
-  appUrl: env.APP_URL || 'http://localhost:3000', // Default if not set
-  appName: env.APP_NAME || pkg.name || 'MCP TS App', // Default if not set
+  openrouterAppUrl: env.OPENROUTER_APP_URL || 'http://localhost:3000', // Default if not set
+  openrouterAppName: env.OPENROUTER_APP_NAME || pkg.name || 'MCP TS App', // Default if not set
   openrouterApiKey: env.OPENROUTER_API_KEY, // No default, service handles if missing
   llmDefaultModel: env.LLM_DEFAULT_MODEL,
   llmDefaultTemperature: env.LLM_DEFAULT_TEMPERATURE,

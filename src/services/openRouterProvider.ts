@@ -15,8 +15,8 @@ import { sanitization } from '../utils/security/sanitization.js';
 import { rateLimiter } from '../utils/security/rateLimiter.js';
 
 // Use the updated config properties
-const YOUR_SITE_URL = config.appUrl;
-const YOUR_SITE_NAME = config.appName;
+const YOUR_SITE_URL = config.openrouterAppUrl;
+const YOUR_SITE_NAME = config.openrouterAppName;
 
 // Define a type that includes potential extra params for clarity, outside the method
 // Allow stream parameter
