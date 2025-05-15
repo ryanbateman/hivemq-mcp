@@ -105,34 +105,37 @@ These tags are essential for defining and referencing data types within the docu
 
 These tags are used at the beginning of a file to provide an overview and metadata for the entire file.
 
-*   **`@file`** (Synonym: `@fileoverview`)
-    *   **Purpose**: Provides a description or overview for the entire file. It is typically placed in a JSDoc block at the very beginning of the file. While some tools infer the filename, `@file` can explicitly state it. `@fileoverview` is a common synonym used to mark the comment block that describes the file's purpose and content.
-    *   **Syntax**: `@file [optional/path/to/filename.js] - Optional description following the dash.` or `@fileoverview Description of the file.`
-    *   **Example**:
-        ```javascript
-        /**
-         * @file src/utils/arrayHelpers.js - Utility functions for array manipulation.
-         * @author Jane Doe
-         */
+- **`@file`** (Synonym: `@fileoverview`)
 
-        /**
-         * @fileoverview This file contains helper functions for working with arrays,
-         * including sorting, filtering, and mapping utilities.
-         * @version 1.0.0
-         */
-        ```
-    *   **Note**: The main description of the file often follows directly after these tags within the same JSDoc block, or can be explicitly marked with `@description`.
+  - **Purpose**: Provides a description or overview for the entire file. It is typically placed in a JSDoc block at the very beginning of the file. While some tools infer the filename, `@file` can explicitly state it. `@fileoverview` is a common synonym used to mark the comment block that describes the file's purpose and content.
+  - **Syntax**: `@file [optional/path/to/filename.js] - Optional description following the dash.` or `@fileoverview Description of the file.`
+  - **Example**:
 
-*   **`@module`**
-    *   **Purpose**: Documents a JavaScript module. This tag helps define the module's name and can be used to group related functions, classes, and variables.
-    *   **Syntax**: `@module moduleName` or `@module path/to/module`
-    *   **Example**:
-        ```javascript
-        /**
-         * @module myApp/dataService
-         * @description Provides services for fetching and manipulating application data.
-         */
-        ```
+    ```javascript
+    /**
+     * @file src/utils/arrayHelpers.js - Utility functions for array manipulation.
+     * @author Jane Doe
+     */
+
+    /**
+     * @fileoverview This file contains helper functions for working with arrays,
+     * including sorting, filtering, and mapping utilities.
+     * @version 1.0.0
+     */
+    ```
+
+  - **Note**: The main description of the file often follows directly after these tags within the same JSDoc block, or can be explicitly marked with `@description`.
+
+- **`@module`**
+  - **Purpose**: Documents a JavaScript module. This tag helps define the module's name and can be used to group related functions, classes, and variables.
+  - **Syntax**: `@module moduleName` or `@module path/to/module`
+  - **Example**:
+    ```javascript
+    /**
+     * @module myApp/dataService
+     * @description Provides services for fetching and manipulating application data.
+     */
+    ```
 
 ## Class and Module Structure Tags
 
