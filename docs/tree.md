@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-15 06:11:33
+Generated on: 2025-05-15 06:52:41
 
 
 ```
@@ -80,6 +80,7 @@ mcp-ts-template
 ├── repomix.config.json
 ├── smithery.yaml
 ├── tsconfig.json
+├── tsdoc.json
 └── typedoc.json
 
 ```
