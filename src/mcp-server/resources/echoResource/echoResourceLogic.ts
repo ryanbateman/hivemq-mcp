@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import { z } from "zod";
 // Import utils from the main barrel file (logger from ../../../utils/internal/logger.js, RequestContext from ../../../utils/internal/requestContext.js)
-import { logger, type RequestContext } from '../../../utils/index.js';
+import { logger, type RequestContext } from "../../../utils/index.js";
 
 /**
  * Zod schema defining the expected *query* parameters for the echo resource.
@@ -12,8 +12,10 @@ import { logger, type RequestContext } from '../../../utils/index.js';
  */
 export const querySchema = z.object({
   /** Optional message to be echoed back in the response. */
-  message: z.string().optional()
-    .describe('Message to echo back in the response')
+  message: z
+    .string()
+    .optional()
+    .describe("Message to echo back in the response"),
 });
 
 /**
@@ -35,11 +37,11 @@ export type EchoParams = z.infer<typeof querySchema>;
 export const processEchoResource = (
   uri: URL,
   params: EchoParams,
-  context: RequestContext // Add context parameter
+  context: RequestContext, // Add context parameter
 ): { message: string; timestamp: string; requestUri: string } => {
   // The 'message' parameter is guaranteed by the ResourceTemplate match "echo://{message}"
   // Use the value directly from the params object populated by the SDK.
-  const message = params.message || 'Default message if somehow empty'; // Added fallback just in case, though template should ensure it exists.
+  const message = params.message || "Default message if somehow empty"; // Added fallback just in case, though template should ensure it exists.
   // Use the passed context for logging
   logger.debug("Processing echo resource logic", { ...context, message });
 
@@ -47,6 +49,6 @@ export const processEchoResource = (
   return {
     message,
     timestamp: new Date().toISOString(),
-    requestUri: uri.href
+    requestUri: uri.href,
   };
 };

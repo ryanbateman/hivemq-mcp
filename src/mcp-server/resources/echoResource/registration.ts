@@ -1,11 +1,18 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  McpServer,
+  ResourceTemplate,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 // Import specific types needed
 import type { ListResourcesResult } from "@modelcontextprotocol/sdk/types.js"; // Removed UnsubscribeRequestSchema as it's not handled
-import { BaseErrorCode, McpError } from '../../../types-global/errors.js';
+import { BaseErrorCode, McpError } from "../../../types-global/errors.js";
 // Import utils from the main barrel file (ErrorHandler, logger, requestContextService from ../../../utils/internal/*)
-import { ErrorHandler, logger, requestContextService } from '../../../utils/index.js';
+import {
+  ErrorHandler,
+  logger,
+  requestContextService,
+} from "../../../utils/index.js";
 // Import logic, schema, and type from the dedicated logic file
-import { EchoParams, processEchoResource } from './echoResourceLogic.js'; // Removed querySchema import
+import { EchoParams, processEchoResource } from "./echoResourceLogic.js"; // Removed querySchema import
 
 // Type inference for UnsubscribeRequest removed as it's not handled
 
@@ -19,14 +26,16 @@ import { EchoParams, processEchoResource } from './echoResourceLogic.js'; // Rem
  * @returns {Promise<void>} A promise that resolves when the resource registration is complete.
  * @throws {McpError} Throws an McpError if the registration process fails critically.
  */
-export const registerEchoResource = async (server: McpServer): Promise<void> => {
+export const registerEchoResource = async (
+  server: McpServer,
+): Promise<void> => {
   const resourceName = "echo-resource"; // Internal identifier for the resource
 
   // Create registration context using the service
   const registrationContext = requestContextService.createRequestContext({
-    operation: 'RegisterEchoResource',
+    operation: "RegisterEchoResource",
     resourceName: resourceName,
-    module: 'EchoResourceRegistration'
+    module: "EchoResourceRegistration",
   });
 
   logger.info(`Registering resource: ${resourceName}`, registrationContext);
@@ -40,29 +49,37 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
         {
           // --- List Operation ---
           // Provides a list of example or discoverable resource URIs.
-          list: async (): Promise<ListResourcesResult> => ({ // Return a simple list of example URIs
-            resources: [{
-              uri: "echo://hello", // Example static URI
-              name: "Default Echo Message",
-              description: "A simple echo resource example using a default message."
-            }]
+          list: async (): Promise<ListResourcesResult> => ({
+            // Return a simple list of example URIs
+            resources: [
+              {
+                uri: "echo://hello", // Example static URI
+                name: "Default Echo Message",
+                description:
+                  "A simple echo resource example using a default message.",
+              },
+            ],
           }),
           // --- Complete Operation ---
           // (Optional) Provides suggestions or completions based on partial input.
           // Not implemented for this simple resource.
-        }
+        },
       );
-      logger.debug(`Resource template created for ${resourceName}`, registrationContext);
+      logger.debug(
+        `Resource template created for ${resourceName}`,
+        registrationContext,
+      );
 
       // Register the resource, its template, metadata, and handler with the server
       // This implicitly handles 'resources/read' based on the template match.
       server.resource(
         resourceName, // The unique name for this resource registration
-        template,     // The ResourceTemplate defined above
+        template, // The ResourceTemplate defined above
         // --- Resource Metadata ---
         {
           name: "Echo Message", // User-friendly name
-          description: "A simple echo resource that returns a message, optionally specified in the URI.",
+          description:
+            "A simple echo resource that returns a message, optionally specified in the URI.",
           mimeType: "application/json", // Default MIME type for responses
 
           // --- Query Schema ---
@@ -74,13 +91,13 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
             {
               name: "Basic echo",
               uri: "echo://hello",
-              description: "Get a default welcome message."
+              description: "Get a default welcome message.",
             },
             {
               name: "Custom echo",
               uri: "echo://custom-message-here",
-              description: "Get a response echoing 'custom-message-here'."
-            }
+              description: "Get a response echoing 'custom-message-here'.",
+            },
           ],
         },
 
@@ -90,10 +107,10 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           // Create handler context using the service
           const handlerContext = requestContextService.createRequestContext({
             parentContext: registrationContext, // Link to the registration context if needed
-            operation: 'HandleEchoResourceRequest',
+            operation: "HandleEchoResourceRequest",
             resourceName: resourceName,
             uri: uri.href,
-            params: params // Include relevant request details
+            params: params, // Include relevant request details
           });
           logger.debug("Handling echo resource request", handlerContext);
 
@@ -101,37 +118,51 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
           return await ErrorHandler.tryCatch(
             async () => {
               // Delegate the core processing logic, passing the context
-              const responseData = processEchoResource(uri, params, handlerContext);
-              logger.debug("Echo resource processed successfully", handlerContext);
+              const responseData = processEchoResource(
+                uri,
+                params,
+                handlerContext,
+              );
+              logger.debug(
+                "Echo resource processed successfully",
+                handlerContext,
+              );
 
               // Return the response in the standardized format expected by the MCP SDK
               // Correctly omits `type: "text"` as per 2025-03-26 spec
               return {
-                contents: [{
-                  uri: uri.href, // Echo back the requested URI
-                  blob: Buffer.from(JSON.stringify(responseData)).toString('base64'), // Return Base64 encoded JSON object
-                  mimeType: "application/json" // Specify the content type
-                }]
+                contents: [
+                  {
+                    uri: uri.href, // Echo back the requested URI
+                    blob: Buffer.from(JSON.stringify(responseData)).toString(
+                      "base64",
+                    ), // Return Base64 encoded JSON object
+                    mimeType: "application/json", // Specify the content type
+                  },
+                ],
               };
             },
             {
               // Configuration for the error handler specific to this request
-              operation: 'processing echo resource handler',
+              operation: "processing echo resource handler",
               context: handlerContext, // Pass handler-specific context
               input: { uri: uri.href, params }, // Log input on error
               // Provide a custom error mapping for more specific error reporting
-              errorMapper: (error: unknown) => new McpError( // Add type 'unknown' to error parameter
-                BaseErrorCode.INTERNAL_ERROR, // Map internal errors
-                `Error processing echo resource request for URI '${uri.href}': ${error instanceof Error ? error.message : 'Unknown error'}`,
-                { ...handlerContext } // Include context in the McpError
-              )
-            }
+              errorMapper: (error: unknown) =>
+                new McpError( // Add type 'unknown' to error parameter
+                  BaseErrorCode.INTERNAL_ERROR, // Map internal errors
+                  `Error processing echo resource request for URI '${uri.href}': ${error instanceof Error ? error.message : "Unknown error"}`,
+                  { ...handlerContext }, // Include context in the McpError
+                ),
+            },
           );
-        }
+        },
       ); // End of server.resource call
 
-
-      logger.info(`Resource registered successfully: ${resourceName}`, registrationContext);
+      logger.info(
+        `Resource registered successfully: ${resourceName}`,
+        registrationContext,
+      );
     },
     {
       // Configuration for the error handler wrapping the entire registration
@@ -139,12 +170,13 @@ export const registerEchoResource = async (server: McpServer): Promise<void> => 
       context: registrationContext, // Context for registration-level errors
       errorCode: BaseErrorCode.INTERNAL_ERROR, // Default error code for registration failure
       // Custom error mapping for registration failures
-      errorMapper: (error: unknown) => new McpError( // Add type 'unknown' to error parameter
-        error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
-        `Failed to register resource '${resourceName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { ...registrationContext } // Include context in the McpError
-      ),
-      critical: true // Mark registration failure as critical to halt startup
-    }
+      errorMapper: (error: unknown) =>
+        new McpError( // Add type 'unknown' to error parameter
+          error instanceof McpError ? error.code : BaseErrorCode.INTERNAL_ERROR,
+          `Failed to register resource '${resourceName}': ${error instanceof Error ? error.message : "Unknown error"}`,
+          { ...registrationContext }, // Include context in the McpError
+        ),
+      critical: true, // Mark registration failure as critical to halt startup
+    },
   ); // End of ErrorHandler.tryCatch for registration
 };

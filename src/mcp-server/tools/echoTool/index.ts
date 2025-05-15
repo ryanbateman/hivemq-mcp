@@ -2,4 +2,4 @@
  * Barrel file for the echo tool.
  * Exports the registration function.
  */
-export { registerEchoTool } from './registration.js';
+export { registerEchoTool } from "./registration.js";
