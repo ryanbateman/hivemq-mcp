@@ -1,6 +1,6 @@
 {
   "name": "mcp-ts-template",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "TypeScript template for building Model Context Protocol (MCP) servers & clients. Features production-ready utilities, stdio/HTTP transports (with JWT auth), examples, and type safety. Ideal starting point for creating MCP-based applications.",
   "main": "dist/index.js",
   "files": [
@@ -27,6 +27,7 @@
     "docs:generate": "typedoc",
     "tree": "ts-node --esm scripts/tree.ts",
     "fetch-spec": "ts-node --esm scripts/fetch-openapi-spec.ts",
+    "format": "prettier --write \"**/*.{ts,js,json,md,html,css}\"",
     "inspector": "mcp-inspector --config mcp.json --server mcp-ts-template"
   },
   "dependencies": {
@@ -74,6 +75,7 @@
     "@types/js-yaml": "^4.0.9",
     "axios": "^1.9.0",
     "js-yaml": "^4.1.0",
+    "prettier": "^3.5.3",
     "typedoc": "^0.28.4"
   }
 }
