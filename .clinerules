@@ -192,8 +192,8 @@ logger.setLevel('debug' as McpLogLevel);
 ```
 
 - **Key Files**:
-  - `src/utils/internal/logger.ts`: Logger implementation.
-  - `logs/`: Directory where JSON log files are stored (`combined.log`, `error.log`, etc.).
+  - `src/utils/internal/logger.ts`: Logger implementation (includes file rotation).
+  - `logs/`: Directory where JSON log files are stored (e.g., `combined.log`, `error.log`), managed with rotation.
 
 ### 2. Error Handling (`src/types-global/errors.ts`, `src/utils/internal/errorHandler.ts`)
 
