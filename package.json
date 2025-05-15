@@ -32,7 +32,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.2",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^22.15.17",
+    "@types/node": "^22.15.18",
     "@types/sanitize-html": "^2.16.0",
     "@types/validator": "13.15.0",
     "chrono-node": "^2.8.0",
@@ -42,7 +42,7 @@
     "jsonwebtoken": "^9.0.2",
     "openai": "^4.98.0",
     "partial-json": "^0.1.7",
-    "sanitize-html": "^2.16.0",
+    "sanitize-html": "^2.17.0",
     "tiktoken": "^1.0.21",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
