@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-05-14
+
+### Added
+
+- **Documentation System**:
+    - Integrated JSDoc for comprehensive code documentation.
+    - Added `tsdoc.json` for TSDoc configuration to ensure consistent JSDoc tag recognition by TypeDoc.
+    - Included `docs/api-references/jsdoc-standard-tags.md` as a detailed reference for standard JSDoc tags.
+    - Updated `.clinerules` with a new section on JSDoc and code documentation best practices.
+- **Logging**: Implemented log file rotation for the Winston logger (`src/utils/internal/logger.ts`) to manage log file sizes.
+
+### Changed
+
+- **Refactoring**:
+    - Standardized `RequestContext` creation and usage across the application (server, transports, core utilities) using `requestContextService.createRequestContext()` for improved logging, error reporting, and operational tracing.
+    - Enhanced `ErrorHandler` (`src/utils/internal/errorHandler.ts`) to correctly use and create `RequestContext` and improve log payload creation.
+    - Significantly refactored the `Logger` (`src/utils/internal/logger.ts`) to correctly handle `RequestContext`, improve console logging format, and enhance MCP notification payloads.
+    - Updated JSDoc comments in `src/utils/internal/requestContext.ts` and improved internal logging within the service.
+    - Modified various utility files (`jsonParser.ts`, `rateLimiter.ts`, `sanitization.ts`) to use `requestContextService.createRequestContext` for internal logging when a context is not provided.
+- **Dependencies**:
+    - Updated `@types/node` from `22.15.17` to `22.15.18`.
+    - Updated `sanitize-html` from `2.16.0` to `2.17.0`.
+- **Documentation**:
+    - Updated `docs/tree.md` to reflect new documentation files and structure.
+
 ## [1.1.9] - 2025-05-12
 
 ### Changed
