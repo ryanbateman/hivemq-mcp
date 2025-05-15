@@ -1,7 +1,7 @@
 import { BaseErrorCode, McpError } from '../../types-global/errors.js';
 // Import config and utils
 import { environment } from '../../config/index.js'; // Import environment from config
-import { logger, RequestContext } from '../index.js';
+import { logger, RequestContext, requestContextService } from '../index.js';
 
 /**
  * Rate limiting configuration options
@@ -98,9 +98,12 @@ export class RateLimiter {
     }
     
     if (expiredCount > 0) {
-      logger.debug(`Cleaned up ${expiredCount} expired rate limit entries`, {
-        totalRemaining: this.limits.size
+      const logContext = requestContextService.createRequestContext({
+        operation: 'RateLimiter.cleanupExpiredEntries',
+        cleanedCount: expiredCount,
+        totalRemainingAfterClean: this.limits.size
       });
+      logger.debug(`Cleaned up ${expiredCount} expired rate limit entries`, logContext);
     }
   }
 
@@ -130,7 +133,8 @@ export class RateLimiter {
    */
   public reset(): void {
     this.limits.clear();
-    logger.debug('Rate limiter reset, all limits cleared');
+    const logContext = requestContextService.createRequestContext({ operation: 'RateLimiter.reset' });
+    logger.debug('Rate limiter reset, all limits cleared', logContext);
   }
 
   /**

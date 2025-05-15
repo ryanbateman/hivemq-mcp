@@ -21,10 +21,10 @@ let server: McpServer | undefined;
  */
 const shutdown = async (signal: string) => {
   // Define context for the shutdown operation
-  const shutdownContext = {
+  const shutdownContext = requestContextService.createRequestContext({
     operation: 'Shutdown',
     signal,
-  };
+  });
 
   logger.info(`Received ${signal}. Starting graceful shutdown...`, shutdownContext);
 
@@ -78,9 +78,6 @@ const start = async () => {
   logger.info(`Logger initialized by start(). MCP logging level: ${validatedMcpLogLevel}`);
   // --- End Logger Initialization ---
 
-  // Log that config is loaded (this was previously done earlier)
-  logger.debug("Configuration loaded successfully", { config });
-
 
   // Create application-level request context using the service instance
   // Use the validated transport type from the config object
@@ -91,6 +88,9 @@ const start = async () => {
     appVersion: config.mcpServerVersion,
     environment: environment
   });
+
+  // Log that config is loaded now that startupContext is available
+  logger.debug("Configuration loaded successfully", { ...startupContext, configDetails: config });
 
   logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion} (Transport: ${transportType})...`, startupContext);
 

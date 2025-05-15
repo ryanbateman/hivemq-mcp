@@ -1,17 +1,17 @@
 /**
- * @file errorHandler.ts
- * @description This module provides utilities for creating and managing request contexts.
- * A request context is a data structure associated with a specific request or operation,
- * carrying a unique ID, timestamp, and other relevant information for logging, tracing,
- * and processing.
+ * @fileoverview This module provides utilities for robust error handling.
+ * It defines structures for error context, options for handling errors,
+ * and mappings for classifying errors. The main `ErrorHandler` class
+ * offers static methods for consistent error processing, logging, and transformation.
+ * @module utils/internal/errorHandler
  */
 import { BaseErrorCode, McpError } from '../../types-global/errors.js';
-import { sanitizeInputForLogging } from '../index.js';
+import { generateUUID, sanitizeInputForLogging } from '../index.js'; // Added generateUUID
 import { logger } from './logger.js';
+import { RequestContext } from './requestContext.js'; // Added RequestContext import
 
 /**
- * @interface ErrorContext
- * @description Defines a generic structure for providing context with errors.
+ * Defines a generic structure for providing context with errors.
  * This context can include identifiers like `requestId` or any other relevant
  * key-value pairs that aid in debugging or understanding the error's circumstances.
  */
@@ -19,8 +19,6 @@ export interface ErrorContext {
   /**
    * A unique identifier for the request or operation during which the error occurred.
    * Useful for tracing errors through logs and distributed systems.
-   * @type {string}
-   * @optional
    */
   requestId?: string;
 
@@ -32,16 +30,13 @@ export interface ErrorContext {
 }
 
 /**
- * @interface ErrorHandlerOptions
- * @description Configuration options for the `ErrorHandler.handleError` method.
+ * Configuration options for the `ErrorHandler.handleError` method.
  * These options control how an error is processed, logged, and whether it's rethrown.
  */
 export interface ErrorHandlerOptions {
   /**
    * The context of the operation that caused the error.
    * This can include `requestId` and other relevant debugging information.
-   * @type {ErrorContext}
-   * @optional
    */
   context?: ErrorContext;
 
@@ -49,49 +44,38 @@ export interface ErrorHandlerOptions {
    * A descriptive name of the operation being performed when the error occurred.
    * This helps in identifying the source or nature of the error in logs.
    * Example: "UserLogin", "ProcessPayment", "FetchUserProfile".
-   * @type {string}
-   * @required
    */
   operation: string;
 
   /**
    * The input data or parameters that were being processed when the error occurred.
    * This input will be sanitized before logging to prevent sensitive data exposure.
-   * @type {unknown}
-   * @optional
    */
   input?: unknown;
 
   /**
    * If true, the (potentially transformed) error will be rethrown after handling.
    * Defaults to `false`.
-   * @type {boolean}
-   * @optional
    */
   rethrow?: boolean;
 
   /**
    * A specific `BaseErrorCode` to assign to the error, overriding any
    * automatically determined error code.
-   * @type {BaseErrorCode}
-   * @optional
    */
   errorCode?: BaseErrorCode;
 
   /**
    * A custom function to map or transform the original error into a new `Error` instance.
    * If provided, this function is used instead of the default `McpError` creation.
-   * @param {unknown} error - The original error that occurred.
-   * @returns {Error} The transformed error.
-   * @optional
+   * @param error - The original error that occurred.
+   * @returns The transformed error.
    */
   errorMapper?: (error: unknown) => Error;
 
   /**
    * If true, stack traces will be included in the logs.
    * Defaults to `true`.
-   * @type {boolean}
-   * @optional
    */
   includeStack?: boolean;
 
@@ -99,30 +83,23 @@ export interface ErrorHandlerOptions {
    * If true, indicates that the error is critical and might require immediate attention
    * or could lead to system instability. This is primarily for logging and alerting.
    * Defaults to `false`.
-   * @type {boolean}
-   * @optional
    */
   critical?: boolean;
 }
 
 /**
- * @interface BaseErrorMapping
- * @description Defines a basic rule for mapping errors based on patterns.
+ * Defines a basic rule for mapping errors based on patterns.
  * Used internally by `COMMON_ERROR_PATTERNS` and as a base for `ErrorMapping`.
  */
 export interface BaseErrorMapping {
   /**
    * A string or regular expression to match against the error message.
    * If a string is provided, it's typically used for substring matching (case-insensitive).
-   * @type {string | RegExp}
-   * @required
    */
   pattern: string | RegExp;
 
   /**
    * The `BaseErrorCode` to assign if the pattern matches.
-   * @type {BaseErrorCode}
-   * @required
    */
   errorCode: BaseErrorCode;
 
@@ -130,43 +107,35 @@ export interface BaseErrorMapping {
    * An optional custom message template for the mapped error.
    * (Note: This property is defined but not directly used by `ErrorHandler.determineErrorCode`
    * which focuses on `errorCode`. It's more relevant for custom mapping logic.)
-   * @type {string}
-   * @optional
    */
   messageTemplate?: string;
 }
 
 /**
- * @interface ErrorMapping
- * @template T - The type of `Error` this mapping will produce, defaults to `Error`.
- * @description Extends `BaseErrorMapping` to include a factory function for creating
+ * Extends `BaseErrorMapping` to include a factory function for creating
  * specific error instances and additional context for the mapping.
  * Used by `ErrorHandler.mapError`.
+ * @template T - The type of `Error` this mapping will produce, defaults to `Error`.
  */
 export interface ErrorMapping<T extends Error = Error> extends BaseErrorMapping {
   /**
    * A factory function that creates and returns an instance of the mapped error type `T`.
-   * @param {unknown} error - The original error that occurred.
-   * @param {Record<string, unknown>} [context] - Optional additional context provided in the mapping rule.
-   * @returns {T} The newly created error instance.
-   * @required
+   * @param error - The original error that occurred.
+   * @param context - Optional additional context provided in the mapping rule.
+   * @returns The newly created error instance.
    */
   factory: (error: unknown, context?: Record<string, unknown>) => T;
 
   /**
    * Additional static context to be merged or passed to the `factory` function
    * when this mapping rule is applied.
-   * @type {Record<string, unknown>}
-   * @optional
    */
   additionalContext?: Record<string, unknown>;
 }
 
 /**
- * @constant ERROR_TYPE_MAPPINGS
- * @description Maps standard JavaScript error constructor names to `BaseErrorCode` values.
+ * Maps standard JavaScript error constructor names to `BaseErrorCode` values.
  * This allows for quick classification of common built-in error types.
- * @readonly
  */
 const ERROR_TYPE_MAPPINGS: Readonly<Record<string, BaseErrorCode>> = {
   'SyntaxError': BaseErrorCode.VALIDATION_ERROR,
@@ -178,23 +147,21 @@ const ERROR_TYPE_MAPPINGS: Readonly<Record<string, BaseErrorCode>> = {
 };
 
 /**
- * @constant COMMON_ERROR_PATTERNS
- * @description An array of `BaseErrorMapping` rules used to automatically classify
+ * An array of `BaseErrorMapping` rules used to automatically classify
  * errors based on keywords or patterns found in their messages or names.
  * These patterns are typically case-insensitive.
  * **IMPORTANT**: The order of patterns matters. More specific patterns should generally come
  * before more generic ones if there's a possibility of overlap, as the first match is used.
- * @readonly
  */
 const COMMON_ERROR_PATTERNS: ReadonlyArray<Readonly<BaseErrorMapping>> = [
   { pattern: /auth|unauthorized|unauthenticated|not.*logged.*in|invalid.*token|expired.*token/i, errorCode: BaseErrorCode.UNAUTHORIZED },
   { pattern: /permission|forbidden|access.*denied|not.*allowed/i, errorCode: BaseErrorCode.FORBIDDEN },
-  { pattern: /not.*found|missing|no.*such|doesn't.*exist|couldn't.*find/i, errorCode: BaseErrorCode.NOT_FOUND },
-  { pattern: /invalid|validation|malformed|bad request|wrong format|missing.*required/i, errorCode: BaseErrorCode.VALIDATION_ERROR },
-  { pattern: /conflict|already.*exists|duplicate|unique.*constraint/i, errorCode: BaseErrorCode.CONFLICT },
-  { pattern: /rate.*limit|too.*many.*requests|throttled/i, errorCode: BaseErrorCode.RATE_LIMITED },
-  { pattern: /timeout|timed.*out|deadline.*exceeded/i, errorCode: BaseErrorCode.TIMEOUT },
-  { pattern: /service.*unavailable|bad.*gateway|gateway.*timeout|upstream.*error/i, errorCode: BaseErrorCode.SERVICE_UNAVAILABLE },
+  { pattern: /not found|missing|no such|doesn't exist|couldn't find/i, errorCode: BaseErrorCode.NOT_FOUND }, // Adjusted for more common phrasing
+  { pattern: /invalid|validation|malformed|bad request|wrong format|missing required/i, errorCode: BaseErrorCode.VALIDATION_ERROR }, // Adjusted
+  { pattern: /conflict|already exists|duplicate|unique constraint/i, errorCode: BaseErrorCode.CONFLICT }, // Adjusted
+  { pattern: /rate limit|too many requests|throttled/i, errorCode: BaseErrorCode.RATE_LIMITED }, // Adjusted
+  { pattern: /timeout|timed out|deadline exceeded/i, errorCode: BaseErrorCode.TIMEOUT }, // Adjusted
+  { pattern: /service unavailable|bad gateway|gateway timeout|upstream error/i, errorCode: BaseErrorCode.SERVICE_UNAVAILABLE }, // Adjusted
 ];
 
 /**
@@ -273,8 +240,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * @class ErrorHandler
- * @description A utility class providing static methods for comprehensive error handling.
+ * A utility class providing static methods for comprehensive error handling.
  */
 export class ErrorHandler {
   /**
@@ -361,33 +327,49 @@ export class ErrorHandler {
     }
 
 
-    // Prepare log payload
-    const logPayload: Record<string, unknown> = {
-      operation,
-      requestId: context.requestId,
-      input: sanitizedInput,
-      critical,
-      errorCode: loggedErrorCode,
-      originalErrorType: originalErrorName, // Retain for clarity
+    // Prepare log payload, ensuring it's a valid RequestContext for the logger
+    const logRequestId = typeof context.requestId === 'string' && context.requestId
+      ? context.requestId
+      : generateUUID(); // Use generateUUID if requestId is not available or empty
+
+    const logTimestamp = typeof context.timestamp === 'string' && context.timestamp
+      ? context.timestamp
+      : new Date().toISOString(); // Fallback to current time
+
+    // Start with core RequestContext fields
+    const logPayload: Record<string, unknown> = { // Explicitly build an object that can be cast to RequestContext
+      requestId: logRequestId,
+      timestamp: logTimestamp,
+      operation, // from options (guaranteed to be string by ErrorHandlerOptions)
+      // Add other details from ErrorHandlerOptions and error processing
+      input: sanitizedInput, // from options, sanitized
+      critical, // from options
+      errorCode: loggedErrorCode, // determined
+      originalErrorType: originalErrorName,
       finalErrorType: getErrorName(finalError),
+      // Include original context properties, excluding ones we've explicitly set or managed
+      ...(Object.fromEntries(
+          Object.entries(context).filter(([key]) => key !== 'requestId' && key !== 'timestamp')
+      )),
     };
 
+    // Add detailed error information
     if (finalError instanceof McpError && finalError.details) {
         logPayload.errorDetails = finalError.details;
     } else {
-        // For non-McpError or McpError without details, use the consolidatedDetails we built
         logPayload.errorDetails = consolidatedDetails;
     }
 
-
-    if (includeStack && finalError instanceof Error && finalError.stack) {
-      logPayload.stack = finalError.stack;
-    } else if (includeStack && originalStack && !logPayload.stack) { // Fallback to original stack if finalError lost it
-      logPayload.stack = originalStack;
+    // Add stack trace if requested and available
+    if (includeStack) {
+      const stack = finalError instanceof Error ? finalError.stack : originalStack;
+      if (stack) {
+        logPayload.stack = stack;
+      }
     }
 
-
-    logger.error(`Error in ${operation}: ${finalError.message || originalErrorMessage}`, logPayload);
+    // Type assertion for the logger, assuming logger handles extra fields beyond RequestContext
+    logger.error(`Error in ${operation}: ${finalError.message || originalErrorMessage}`, logPayload as unknown as RequestContext);
 
     if (rethrow) {
       throw finalError;

@@ -17,7 +17,7 @@ import http from 'http';
 import { randomUUID } from 'node:crypto';
 // Import config and utils
 import { config } from '../../config/index.js'; // Import the validated config object
-import { logger } from '../../utils/index.js';
+import { logger, RequestContext, requestContextService } from '../../utils/index.js'; // Updated import
 import { mcpAuthMiddleware } from './authentication/authMiddleware.js'; // Import the auth middleware
 
 // --- Configuration Constants (Derived from imported config) ---
@@ -73,7 +73,7 @@ function isOriginAllowed(req: Request, res: Response): boolean {
   const host = req.hostname; // Considers Host header
   const isLocalhostBinding = ['127.0.0.1', '::1', 'localhost'].includes(host);
   const allowedOrigins = config.mcpAllowedOrigins || []; // Use parsed array from config
-  const context = { operation: 'isOriginAllowed', origin, host, isLocalhostBinding, allowedOrigins };
+  const context = requestContextService.createRequestContext({ operation: 'isOriginAllowed', origin, host, isLocalhostBinding, allowedOrigins });
   logger.debug('Checking origin allowance', context);
 
   // Determine if allowed based on config or localhost binding
@@ -101,11 +101,11 @@ function isOriginAllowed(req: Request, res: Response): boolean {
  * Proactively checks if a specific port is already in use. (Asynchronous)
  * @param {number} port - Port to check.
  * @param {string} host - Host address to check.
- * @param {Record<string, any>} context - Logging context.
+ * @param {RequestContext} parentContext - Logging context from the caller.
  * @returns {Promise<boolean>} True if port is in use (EADDRINUSE), false otherwise.
  */
-async function isPortInUse(port: number, host: string, context: Record<string, any>): Promise<boolean> {
-  const checkContext = { ...context, operation: 'isPortInUse', port, host };
+async function isPortInUse(port: number, host: string, parentContext: RequestContext): Promise<boolean> {
+  const checkContext = requestContextService.createRequestContext({ ...parentContext, operation: 'isPortInUse', port, host });
   logger.debug(`Proactively checking port usability...`, checkContext);
   return new Promise((resolve) => {
     const tempServer = http.createServer();
@@ -136,7 +136,7 @@ async function isPortInUse(port: number, host: string, context: Record<string, a
  * @param {number} initialPort - The starting port number.
  * @param {string} host - The host address to bind to.
  * @param {number} maxRetries - Maximum number of additional ports to try.
- * @param {Record<string, any>} context - Logging context.
+ * @param {RequestContext} parentContext - Logging context from the caller.
  * @returns {Promise<number>} Resolves with the port number successfully bound to.
  * @throws {Error} Rejects if binding fails after all retries or for non-EADDRINUSE errors.
  */
@@ -145,18 +145,20 @@ function startHttpServerWithRetry(
   initialPort: number,
   host: string,
   maxRetries: number,
-  context: Record<string, any>
+  parentContext: RequestContext
 ): Promise<number> {
-  const startContext = { ...context, operation: 'startHttpServerWithRetry', initialPort, host, maxRetries };
+  const startContext = requestContextService.createRequestContext({ ...parentContext, operation: 'startHttpServerWithRetry', initialPort, host, maxRetries });
   logger.debug(`Attempting to start HTTP server...`, startContext);
   return new Promise(async (resolve, reject) => {
     let lastError: Error | null = null;
     for (let i = 0; i <= maxRetries; i++) {
       const currentPort = initialPort + i;
-      const attemptContext = { ...startContext, port: currentPort, attempt: i + 1, maxAttempts: maxRetries + 1 };
+      // Create a new context for each attempt, inheriting from startContext
+      const attemptContext = requestContextService.createRequestContext({ ...startContext, port: currentPort, attempt: i + 1, maxAttempts: maxRetries + 1 });
       logger.debug(`Attempting port ${currentPort} (${attemptContext.attempt}/${attemptContext.maxAttempts})`, attemptContext);
 
       // 1. Proactive Check
+      // Pass the specific attemptContext to isPortInUse
       if (await isPortInUse(currentPort, host, attemptContext)) {
         logger.warning(`Proactive check detected port ${currentPort} is in use, retrying...`, attemptContext);
         lastError = new Error(`EADDRINUSE: Port ${currentPort} detected as in use by proactive check.`);
@@ -203,16 +205,17 @@ function startHttpServerWithRetry(
  * and starts the HTTP server with retry logic.
  *
  * @param {() => Promise<McpServer>} createServerInstanceFn - Async factory function to create a new McpServer instance per session.
- * @param {Record<string, any>} context - Logging context.
+ * @param {RequestContext} parentContext - Logging context from the caller (server.ts).
  * @returns {Promise<void>} Resolves when the server is listening, or rejects on failure.
  * @throws {Error} If the server fails to start after retries.
  */
 export async function startHttpTransport(
   createServerInstanceFn: () => Promise<McpServer>,
-  context: Record<string, any>
+  parentContext: RequestContext
 ): Promise<void> {
   const app = express();
-  const transportContext = { ...context, transportType: 'HTTP' };
+  // transportContext inherits from parentContext (e.g., from initializeAndStartServer)
+  const transportContext = requestContextService.createRequestContext({ ...parentContext, transportType: 'HTTP', component: 'HttpTransportSetup' });
   logger.debug('Setting up Express app for HTTP transport...', transportContext);
 
   // Middleware to parse JSON request bodies. Required for MCP messages.
@@ -223,9 +226,9 @@ export async function startHttpTransport(
   // 1. CORS Preflight (OPTIONS) Handler
   // Handles OPTIONS requests sent by browsers before actual GET/POST/DELETE.
   app.options(MCP_ENDPOINT_PATH, (req, res) => {
-    const optionsContext = { ...transportContext, operation: 'handleOptions', origin: req.headers.origin };
+    const optionsContext = requestContextService.createRequestContext({ ...transportContext, operation: 'handleOptions', origin: req.headers.origin, method: req.method, path: req.path });
     logger.debug(`Received OPTIONS request for ${MCP_ENDPOINT_PATH}`, optionsContext);
-    if (isOriginAllowed(req, res)) {
+    if (isOriginAllowed(req, res)) { // isOriginAllowed creates its own context now
       // isOriginAllowed sets necessary Access-Control-* headers.
       logger.debug('OPTIONS request origin allowed, sending 204.', optionsContext);
       res.sendStatus(204); // OK, No Content
@@ -238,11 +241,11 @@ export async function startHttpTransport(
 
   // 2. General Security Headers & Origin Check Middleware (for non-OPTIONS)
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const securityContext = { ...transportContext, operation: 'securityMiddleware', path: req.path, method: req.method, origin: req.headers.origin };
+    const securityContext = requestContextService.createRequestContext({ ...transportContext, operation: 'securityMiddleware', path: req.path, method: req.method, origin: req.headers.origin });
     logger.debug(`Applying security middleware...`, securityContext);
 
     // Check origin again for non-OPTIONS requests and set CORS headers if allowed.
-    if (!isOriginAllowed(req, res)) {
+    if (!isOriginAllowed(req, res)) { // isOriginAllowed creates its own context now
       // isOriginAllowed logs the warning.
       logger.debug('Origin check failed, sending 403.', securityContext);
       res.status(403).send('Forbidden: Invalid Origin');
@@ -275,7 +278,7 @@ export async function startHttpTransport(
   // MCP Spec: Server responds 202 for notification/response-only, or JSON/SSE for requests.
   app.post(MCP_ENDPOINT_PATH, async (req, res) => {
     // Define base context for this request
-    const basePostContext = { ...transportContext, operation: 'handlePost', method: 'POST' };
+    const basePostContext = requestContextService.createRequestContext({ ...transportContext, operation: 'handlePost', method: 'POST', path: req.path, origin: req.headers.origin });
     logger.debug(`Received POST request on ${MCP_ENDPOINT_PATH}`, { ...basePostContext, headers: req.headers, bodyPreview: JSON.stringify(req.body).substring(0, 100) });
 
     // MCP Spec: Session ID MUST be included by client after initialization.
@@ -385,7 +388,7 @@ export async function startHttpTransport(
   const handleSessionReq = async (req: Request, res: Response) => {
     const method = req.method; // GET or DELETE
     // Define base context for this request
-    const baseSessionReqContext = { ...transportContext, operation: `handle${method}`, method };
+    const baseSessionReqContext = requestContextService.createRequestContext({ ...transportContext, operation: `handle${method}`, method, path: req.path, origin: req.headers.origin });
     logger.debug(`Received ${method} request on ${MCP_ENDPOINT_PATH}`, { ...baseSessionReqContext, headers: req.headers });
 
     // MCP Spec: Client MUST include Mcp-Session-Id header (after init).

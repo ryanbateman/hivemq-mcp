@@ -10,9 +10,10 @@ import { config } from '../config/index.js';
 import { BaseErrorCode, McpError } from '../types-global/errors.js';
 import { ErrorHandler } from '../utils/internal/errorHandler.js';
 import { logger } from '../utils/internal/logger.js';
-import { OperationContext, RequestContext } from '../utils/internal/requestContext.js';
-import { sanitization } from '../utils/security/sanitization.js';
+// Import requestContextService as well
+import { OperationContext, RequestContext, requestContextService } from '../utils/internal/requestContext.js';
 import { rateLimiter } from '../utils/security/rateLimiter.js';
+import { sanitization } from '../utils/security/sanitization.js';
 
 // Use the updated config properties
 const YOUR_SITE_URL = config.openrouterAppUrl;
@@ -39,8 +40,16 @@ class OpenRouterProvider {
   public readonly status: 'unconfigured' | 'initializing' | 'ready' | 'error';
   private initializationError: Error | null = null;
 
-  constructor(apiKey: string | undefined, context?: OperationContext) {
-    const opContext = context || { operation: 'OpenRouterProvider.constructor' };
+  constructor(apiKey: string | undefined, parentOpContext?: OperationContext) {
+    // Create a full RequestContext for the constructor's operations
+    // It can be linked to a parent operation if parentOpContext and its requestId are available
+    const operationName = parentOpContext?.operation
+      ? `${parentOpContext.operation}.OpenRouterProvider.constructor`
+      : 'OpenRouterProvider.constructor';
+    const opContext = requestContextService.createRequestContext({
+      operation: operationName,
+      parentRequestId: parentOpContext?.requestId // This will be undefined if parentOpContext or parentOpContext.requestId is undefined
+    });
     this.status = 'initializing'; // Start in initializing state
 
     if (!apiKey) {
@@ -318,3 +327,4 @@ const openRouterProviderInstance = new OpenRouterProvider(config.openrouterApiKe
 // Export the guaranteed instance. Consumers should check its status or handle errors from its methods.
 export { openRouterProviderInstance as openRouterProvider };
 export type { OpenRouterProvider }; // Export type for dependency injection/typing
+

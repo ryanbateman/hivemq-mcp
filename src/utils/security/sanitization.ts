@@ -2,8 +2,8 @@ import path from 'path';
 import sanitizeHtml from 'sanitize-html';
 import validator from 'validator';
 import { BaseErrorCode, McpError } from '../../types-global/errors.js';
-// Import utils from the main barrel file (logger from ../internal/logger.js)
-import { logger } from '../index.js';
+// Import utils from the main barrel file (logger, requestContextService from ../internal/*)
+import { logger, requestContextService } from '../index.js'; // Added requestContextService
 
 /**
  * Options for path sanitization.
@@ -127,7 +127,8 @@ export class Sanitization {
    */
   public setSensitiveFields(fields: string[]): void {
     this.sensitiveFields = [...new Set([...this.sensitiveFields, ...fields])]; // Ensure uniqueness
-    logger.debug('Updated sensitive fields list', { count: this.sensitiveFields.length });
+    const logContext = requestContextService.createRequestContext({ operation: 'Sanitization.setSensitiveFields', newSensitiveFieldCount: this.sensitiveFields.length });
+    logger.debug('Updated sensitive fields list', logContext);
   }
 
   /**
@@ -189,12 +190,14 @@ export class Sanitization {
         return sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} });
       case 'url':
         if (!validator.isURL(input, { protocols: ['http', 'https'], require_protocol: true })) {
-           logger.warning('Invalid URL detected during string sanitization', { input });
+           const logContext = requestContextService.createRequestContext({ operation: 'Sanitization.sanitizeString.urlWarning', invalidUrlAttempt: input });
+           logger.warning('Invalid URL detected during string sanitization', logContext);
            return '';
          }
         return validator.trim(input);
       case 'javascript':
-        logger.error('Attempted JavaScript sanitization via sanitizeString', { input: input.substring(0, 50) });
+        const logContextJs = requestContextService.createRequestContext({ operation: 'Sanitization.sanitizeString.jsAttempt', inputSnippet: input.substring(0, 50) });
+        logger.error('Attempted JavaScript sanitization via sanitizeString', logContextJs);
         throw new McpError(
           BaseErrorCode.VALIDATION_ERROR,
           'JavaScript sanitization not supported through string sanitizer'
@@ -323,11 +326,13 @@ export class Sanitization {
       };
 
     } catch (error) {
-      logger.warning('Path sanitization error', {
-        input: originalInput,
-        options: effectiveOptions,
-        error: error instanceof Error ? error.message : String(error)
+      const logContext = requestContextService.createRequestContext({
+        operation: 'Sanitization.sanitizePath.error',
+        originalPathInput: originalInput,
+        pathOptionsUsed: effectiveOptions,
+        errorMessage: error instanceof Error ? error.message : String(error)
       });
+      logger.warning('Path sanitization error', logContext);
       
       throw new McpError(
         BaseErrorCode.VALIDATION_ERROR,
@@ -411,7 +416,8 @@ export class Sanitization {
       clamped = true;
     }
     if (clamped) {
-      logger.debug('Number clamped to range', { input, min, max, finalValue: value });
+      const logContext = requestContextService.createRequestContext({ operation: 'Sanitization.sanitizeNumber.clamped', originalInput: String(input), minValue: min, maxValue: max, clampedValue: value });
+      logger.debug('Number clamped to range', logContext);
     }
     
     return value;
@@ -437,9 +443,8 @@ export class Sanitization {
       return clonedInput;
 
     } catch (error) {
-      logger.error('Error during log sanitization', { 
-        error: error instanceof Error ? error.message : String(error) 
-      });
+      const logContext = requestContextService.createRequestContext({ operation: 'Sanitization.sanitizeForLogging.error', errorMessage: error instanceof Error ? error.message : String(error) });
+      logger.error('Error during log sanitization', logContext);
       return '[Log Sanitization Failed]';
     }
   }

@@ -34,11 +34,11 @@
  * @see {@link https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-03-26/basic/authorization.mdx | MCP Authorization Specification}
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 // Import config, environment constants, and logger
 import { config, environment } from '../../../config/index.js';
-import { logger } from '../../../utils/index.js';
+import { logger, requestContextService } from '../../../utils/index.js';
 
 // Extend the Express Request interface to include the optional 'auth' property
 // This allows attaching the decoded JWT payload to the request object.
@@ -72,9 +72,10 @@ if (environment === 'production' && !config.mcpAuthSecretKey) {
  * @param {Response} res - Express response object.
  * @param {NextFunction} next - Express next middleware function.
  */
+
 export function mcpAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Establish context for logging associated with this middleware execution.
-  const context = { operation: 'mcpAuthMiddleware', method: req.method, path: req.path };
+  const context = requestContextService.createRequestContext({ operation: 'mcpAuthMiddleware', method: req.method, path: req.path });
   logger.debug('Running MCP Authentication Middleware (Bearer Token Validation)...', context);
 
   // --- Development Mode Bypass ---

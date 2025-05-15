@@ -58,7 +58,7 @@ import { connectStdioTransport } from './transports/stdioTransport.js';
  * @throws {Error} If any resource or tool registration fails.
  */
 async function createMcpServerInstance(): Promise<McpServer> {
-  const context = { operation: 'createMcpServerInstance' };
+  const context = requestContextService.createRequestContext({ operation: 'createMcpServerInstance' });
   logger.info('Initializing MCP server instance', context);
 
   // Configure the request context service (used for correlating logs/errors).
@@ -121,7 +121,7 @@ async function createMcpServerInstance(): Promise<McpServer> {
 async function startTransport(): Promise<McpServer | void> {
   // Determine the transport type from the validated configuration.
   const transportType = config.mcpTransportType;
-  const context = { operation: 'startTransport', transport: transportType };
+  const context = requestContextService.createRequestContext({ operation: 'startTransport', transport: transportType });
   logger.info(`Starting transport: ${transportType}`, context);
 
   // --- HTTP Transport Setup ---
@@ -165,7 +165,7 @@ async function startTransport(): Promise<McpServer | void> {
  * @returns {Promise<void | McpServer>} Resolves upon successful startup (void for http, McpServer for stdio). Rejects on critical failure.
  */
 export async function initializeAndStartServer(): Promise<void | McpServer> {
-  const context = { operation: 'initializeAndStartServer' };
+  const context = requestContextService.createRequestContext({ operation: 'initializeAndStartServer' });
   logger.info('MCP Server initialization sequence started.', context);
   try {
     // Initiate the transport setup based on configuration.
@@ -180,7 +180,8 @@ export async function initializeAndStartServer(): Promise<void | McpServer> {
       stack: err instanceof Error ? err.stack : undefined,
     });
     // Use the centralized error handler for consistent critical error reporting.
-    ErrorHandler.handleError(err, { ...context, critical: true });
+    // The operation name is known here, and the full context object is passed.
+    ErrorHandler.handleError(err, { operation: 'initializeAndStartServer', context: context, critical: true });
     // Exit the process with a non-zero code to indicate failure.
     logger.info('Exiting process due to critical initialization error.', context);
     process.exit(1);

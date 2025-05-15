@@ -1,7 +1,7 @@
 import { parse as parsePartialJson, Allow as PartialJsonAllow } from 'partial-json';
 import { BaseErrorCode, McpError } from '../../types-global/errors.js';
-// Import utils from the main barrel file (logger, RequestContext from ../internal/*)
-import { logger, RequestContext } from '../index.js';
+// Import utils from the main barrel file (logger, RequestContext, requestContextService from ../internal/*)
+import { logger, RequestContext, requestContextService } from '../index.js';
 
 /**
  * Enum mirroring partial-json's Allow constants for specifying
@@ -39,8 +39,12 @@ class JsonParser {
       const restOfString = match[2];
 
       if (thinkContent) {
-        logger.debug('LLM <think> block detected and logged.', { ...context, thinkContent });
+        const logContext = context 
+            ? { ...context, thinkContent } 
+            : requestContextService.createRequestContext({ operation: 'JsonParser.thinkBlock', thinkContent });
+        logger.debug('LLM <think> block detected and logged.', logContext);
       } else {
+        // If context is undefined, logger.debug handles it. If context is present, it's used.
         logger.debug('Empty LLM <think> block detected.', context);
       }
 
@@ -76,7 +80,10 @@ class JsonParser {
     } catch (error: any) {
       // Wrap the original error in an McpError for consistent error handling
       // Include the original error message for better debugging context.
-      logger.error('Failed to parse JSON content.', { ...context, error: error.message, contentAttempted: stringToParse });
+      const errorLogContext = context
+        ? { ...context, errorDetails: error.message, contentAttempted: stringToParse } // Renamed 'error' to 'errorDetails' to avoid conflict if context has 'error'
+        : requestContextService.createRequestContext({ operation: 'JsonParser.parseError', errorDetails: error.message, contentAttempted: stringToParse });
+      logger.error('Failed to parse JSON content.', errorLogContext);
       throw new McpError(
         BaseErrorCode.VALIDATION_ERROR,
         `Failed to parse JSON: ${error.message}`,
