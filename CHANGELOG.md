@@ -27,6 +27,13 @@ All notable changes to this project will be documented in this file.
 - **Configuration**:
   - Minor formatting adjustment in `repomix.config.json`.
   - Minor formatting adjustment (trailing newline) in `tsconfig.json`.
+- **Core Application & Utilities**:
+  - Refactored configuration management (`src/config/index.ts`) for enhanced clarity, validation using Zod, and comprehensive JSDoc.
+  - Overhauled the main application entry point (`src/index.ts`) with improved startup/shutdown logic, robust error handling for uncaught exceptions/rejections, and detailed JSDoc.
+  - Enhanced error type definitions (`src/types-global/errors.ts`) with extensive JSDoc, clarifying `BaseErrorCode`, `McpError`, and `ErrorSchema`.
+- **MCP Components**:
+  - Refactored the `echo` resource (`src/mcp-server/resources/echoResource/`) with detailed JSDoc, clearer type definitions, and improved registration logic.
+  - Refactored the `echo_message` tool (`src/mcp-server/tools/echoTool/`) with detailed JSDoc, improved input/response types, and enhanced registration structure.
 
 ## [1.2.0] - 2025-05-14
 
