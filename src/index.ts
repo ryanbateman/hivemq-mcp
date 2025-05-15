@@ -2,7 +2,7 @@
 
 // Imports MUST be at the top level
 import { logger, McpLogLevel } from "./utils/internal/logger.js"; // Import logger instance early
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { config, environment } from "./config/index.js"; // This loads .env via dotenv.config()
 import { initializeAndStartServer } from "./mcp-server/server.js";
 import { requestContextService } from "./utils/index.js";
@@ -22,11 +22,14 @@ let server: McpServer | undefined;
 const shutdown = async (signal: string) => {
   // Define context for the shutdown operation
   const shutdownContext = requestContextService.createRequestContext({
-    operation: 'Shutdown',
+    operation: "Shutdown",
     signal,
   });
 
-  logger.info(`Received ${signal}. Starting graceful shutdown...`, shutdownContext);
+  logger.info(
+    `Received ${signal}. Starting graceful shutdown...`,
+    shutdownContext,
+  );
 
   try {
     // Close the main MCP server
@@ -35,7 +38,10 @@ const shutdown = async (signal: string) => {
       await server.close();
       logger.info("Main MCP server closed successfully", shutdownContext);
     } else {
-      logger.warning("Server instance not found during shutdown.", shutdownContext);
+      logger.warning(
+        "Server instance not found during shutdown.",
+        shutdownContext,
+      );
     }
 
     logger.info("Graceful shutdown completed successfully", shutdownContext);
@@ -45,7 +51,7 @@ const shutdown = async (signal: string) => {
     logger.error("Critical error during shutdown", {
       ...shutdownContext,
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
     process.exit(1); // Exit with error code if shutdown fails
   }
@@ -57,27 +63,38 @@ const shutdown = async (signal: string) => {
  * and registers signal handlers for graceful shutdown and error handling.
  */
 const start = async () => {
-
   // --- Logger Initialization (Moved here AFTER config/dotenv is loaded) ---
-  const validMcpLogLevels: McpLogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit', 'alert', 'emerg'];
+  const validMcpLogLevels: McpLogLevel[] = [
+    "debug",
+    "info",
+    "notice",
+    "warning",
+    "error",
+    "crit",
+    "alert",
+    "emerg",
+  ];
   // Read level from config (which read from env var or default)
   const initialLogLevelConfig = config.logLevel;
   // Validate the configured log level
-  let validatedMcpLogLevel: McpLogLevel = 'info'; // Default to 'info'
+  let validatedMcpLogLevel: McpLogLevel = "info"; // Default to 'info'
   if (validMcpLogLevels.includes(initialLogLevelConfig as McpLogLevel)) {
     validatedMcpLogLevel = initialLogLevelConfig as McpLogLevel;
   } else {
     // Use console.warn here as logger isn't initialized yet, only if TTY
     if (process.stdout.isTTY) {
-      console.warn(`Invalid MCP_LOG_LEVEL "${initialLogLevelConfig}" provided via config/env. Defaulting to "info".`);
+      console.warn(
+        `Invalid MCP_LOG_LEVEL "${initialLogLevelConfig}" provided via config/env. Defaulting to "info".`,
+      );
     }
   }
   // Initialize the logger with the validated MCP level and wait for it to complete.
   await logger.initialize(validatedMcpLogLevel);
   // Log initialization message using the logger itself (will go to file/console)
-  logger.info(`Logger initialized by start(). MCP logging level: ${validatedMcpLogLevel}`);
+  logger.info(
+    `Logger initialized by start(). MCP logging level: ${validatedMcpLogLevel}`,
+  );
   // --- End Logger Initialization ---
-
 
   // Create application-level request context using the service instance
   // Use the validated transport type from the config object
@@ -86,41 +103,55 @@ const start = async () => {
     operation: `ServerStartup_${transportType}`, // Include transport in operation name
     appName: config.mcpServerName,
     appVersion: config.mcpServerVersion,
-    environment: environment
+    environment: environment,
   });
 
   // Log that config is loaded now that startupContext is available
-  logger.debug("Configuration loaded successfully", { ...startupContext, configDetails: config });
+  logger.debug("Configuration loaded successfully", {
+    ...startupContext,
+    configDetails: config,
+  });
 
-  logger.info(`Starting ${config.mcpServerName} v${config.mcpServerVersion} (Transport: ${transportType})...`, startupContext);
+  logger.info(
+    `Starting ${config.mcpServerName} v${config.mcpServerVersion} (Transport: ${transportType})...`,
+    startupContext,
+  );
 
   try {
     // Initialize the server instance and start the selected transport
-    logger.debug("Initializing and starting MCP server transport", startupContext);
+    logger.debug(
+      "Initializing and starting MCP server transport",
+      startupContext,
+    );
 
     // Start the server transport. For stdio, this returns the server instance.
     // For http, it sets up the listener and returns void (or potentially the http.Server).
     // We only need to store the instance for stdio shutdown.
     const potentialServerInstance = await initializeAndStartServer();
-    if (transportType === 'stdio' && potentialServerInstance instanceof McpServer) {
-        server = potentialServerInstance; // Store only for stdio
+    if (
+      transportType === "stdio" &&
+      potentialServerInstance instanceof McpServer
+    ) {
+      server = potentialServerInstance; // Store only for stdio
     } else {
-        // For HTTP, server instances are managed per-session in server.ts
-        // The main http server listener keeps the process alive.
-        // Shutdown for HTTP needs to handle closing the main http server.
-        // We might need to return the httpServer from initializeAndStartServer if
-        // we want to close it explicitly here during shutdown.
-        // For now, we don't store anything globally for HTTP transport.
+      // For HTTP, server instances are managed per-session in server.ts
+      // The main http server listener keeps the process alive.
+      // Shutdown for HTTP needs to handle closing the main http server.
+      // We might need to return the httpServer from initializeAndStartServer if
+      // we want to close it explicitly here during shutdown.
+      // For now, we don't store anything globally for HTTP transport.
     }
-
 
     // If initializeAndStartServer failed, it would have thrown an error,
     // and execution would jump to the outer catch block.
 
-    logger.info(`${config.mcpServerName} is running with ${transportType} transport`, {
-      ...startupContext,
-      startTime: new Date().toISOString(),
-    });
+    logger.info(
+      `${config.mcpServerName} is running with ${transportType} transport`,
+      {
+        ...startupContext,
+        startTime: new Date().toISOString(),
+      },
+    );
 
     // --- Signal and Error Handling Setup ---
 
@@ -132,11 +163,14 @@ const start = async () => {
     process.on("uncaughtException", async (error) => {
       const errorContext = {
         ...startupContext, // Include base context for correlation
-        event: 'uncaughtException',
+        event: "uncaughtException",
         error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       };
-      logger.error("Uncaught exception detected. Initiating shutdown...", errorContext);
+      logger.error(
+        "Uncaught exception detected. Initiating shutdown...",
+        errorContext,
+      );
       // Attempt graceful shutdown; shutdown() handles its own errors.
       await shutdown("uncaughtException");
       // If shutdown fails internally, it will call process.exit(1).
@@ -149,11 +183,14 @@ const start = async () => {
     process.on("unhandledRejection", async (reason: unknown) => {
       const rejectionContext = {
         ...startupContext, // Include base context for correlation
-        event: 'unhandledRejection',
+        event: "unhandledRejection",
         reason: reason instanceof Error ? reason.message : String(reason),
-        stack: reason instanceof Error ? reason.stack : undefined
+        stack: reason instanceof Error ? reason.stack : undefined,
       };
-      logger.error("Unhandled promise rejection detected. Initiating shutdown...", rejectionContext);
+      logger.error(
+        "Unhandled promise rejection detected. Initiating shutdown...",
+        rejectionContext,
+      );
       // Attempt graceful shutdown; shutdown() handles its own errors.
       await shutdown("unhandledRejection");
       // Similar logic as uncaughtException: shutdown handles its exit codes.
@@ -163,7 +200,7 @@ const start = async () => {
     // Log the final failure context, including error details, before exiting
     logger.error("Critical error during startup, exiting.", {
       ...startupContext,
-      finalErrorContext: 'Startup Failure',
+      finalErrorContext: "Startup Failure",
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });

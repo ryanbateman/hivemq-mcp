@@ -2,25 +2,29 @@ import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { z } from 'zod';
+import { z } from "zod";
 
 dotenv.config(); // Load environment variables from .env file
 
 // Determine the directory name of the current module
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Construct the path to package.json relative to the current file
-const pkgPath = join(__dirname, '../../package.json');
+const pkgPath = join(__dirname, "../../package.json");
 // Default package information in case package.json is unreadable
-let pkg = { name: 'mcp-ts-template', version: '0.0.0' };
+let pkg = { name: "mcp-ts-template", version: "0.0.0" };
 
 try {
   // Read and parse package.json to get default server name and version
-  pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+  pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 } catch (error) {
   // Silently use default pkg info if reading fails.
   // Consider adding logging here if robust error handling is needed.
-  if (process.stdout.isTTY) { // Guarded console.error
-    console.error("Warning: Could not read package.json for default config values.", error);
+  if (process.stdout.isTTY) {
+    // Guarded console.error
+    console.error(
+      "Warning: Could not read package.json for default config values.",
+      error,
+    );
   }
 }
 
@@ -30,17 +34,28 @@ const EnvSchema = z.object({
   MCP_SERVER_VERSION: z.string().optional(),
   MCP_LOG_LEVEL: z.string().default("info"),
   NODE_ENV: z.string().default("development"),
-  MCP_TRANSPORT_TYPE: z.enum(['stdio', 'http']).default('stdio'),
+  MCP_TRANSPORT_TYPE: z.enum(["stdio", "http"]).default("stdio"),
   MCP_HTTP_PORT: z.coerce.number().int().positive().default(3010), // Updated default port
-  MCP_HTTP_HOST: z.string().default('127.0.0.1'),
+  MCP_HTTP_HOST: z.string().default("127.0.0.1"),
   MCP_ALLOWED_ORIGINS: z.string().optional(), // Comma-separated string
-  MCP_AUTH_SECRET_KEY: z.string().min(32, "MCP_AUTH_SECRET_KEY must be at least 32 characters long for security").optional(), // Secret for signing/verifying tokens
+  MCP_AUTH_SECRET_KEY: z
+    .string()
+    .min(
+      32,
+      "MCP_AUTH_SECRET_KEY must be at least 32 characters long for security",
+    )
+    .optional(), // Secret for signing/verifying tokens
 
   // OpenRouter and LLM specific configurations
-  OPENROUTER_APP_URL: z.string().url("OPENROUTER_APP_URL must be a valid URL").optional(),
+  OPENROUTER_APP_URL: z
+    .string()
+    .url("OPENROUTER_APP_URL must be a valid URL")
+    .optional(),
   OPENROUTER_APP_NAME: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
-  LLM_DEFAULT_MODEL: z.string().default('google/gemini-2.5-flash-preview:thinking'),
+  LLM_DEFAULT_MODEL: z
+    .string()
+    .default("google/gemini-2.5-flash-preview:thinking"),
   LLM_DEFAULT_TEMPERATURE: z.coerce.number().min(0).max(2).optional(),
   LLM_DEFAULT_TOP_P: z.coerce.number().min(0).max(1).optional(),
   LLM_DEFAULT_MAX_TOKENS: z.coerce.number().int().positive().optional(),
@@ -53,7 +68,10 @@ const parsedEnv = EnvSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
   if (process.stdout.isTTY) {
-    console.error("❌ Invalid environment variables:", parsedEnv.error.flatten().fieldErrors);
+    console.error(
+      "❌ Invalid environment variables:",
+      parsedEnv.error.flatten().fieldErrors,
+    );
   }
   // Decide if the application should exit or continue with defaults
   // For critical configs, you might want to throw an error:
@@ -122,7 +140,9 @@ export const config = {
    * Controlled by MCP_ALLOWED_ORIGINS env var.
    * Default: undefined (meaning CORS might be restrictive by default in the transport layer)
    */
-  mcpAllowedOrigins: env.MCP_ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean),
+  mcpAllowedOrigins: env.MCP_ALLOWED_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   /**
    * A secret key used for signing and verifying authentication tokens (e.g., JWT).
@@ -133,8 +153,8 @@ export const config = {
   mcpAuthSecretKey: env.MCP_AUTH_SECRET_KEY,
 
   // OpenRouter and LLM specific properties
-  openrouterAppUrl: env.OPENROUTER_APP_URL || 'http://localhost:3000', // Default if not set
-  openrouterAppName: env.OPENROUTER_APP_NAME || pkg.name || 'MCP TS App', // Default if not set
+  openrouterAppUrl: env.OPENROUTER_APP_URL || "http://localhost:3000", // Default if not set
+  openrouterAppName: env.OPENROUTER_APP_NAME || pkg.name || "MCP TS App", // Default if not set
   openrouterApiKey: env.OPENROUTER_API_KEY, // No default, service handles if missing
   llmDefaultModel: env.LLM_DEFAULT_MODEL,
   llmDefaultTemperature: env.LLM_DEFAULT_TEMPERATURE,
