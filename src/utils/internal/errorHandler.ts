@@ -391,22 +391,23 @@ export class ErrorHandler {
 
     if (error instanceof McpError) {
       loggedErrorCode = error.code;
+      // Pass consolidatedDetails directly to the constructor if not using errorMapper.
+      // If errorMapper is used, it's responsible for handling details.
       finalError = errorMapper
         ? errorMapper(error)
         : new McpError(error.code, error.message, consolidatedDetails);
-      if (finalError instanceof McpError && !finalError.details) {
-        (finalError as McpError).details = consolidatedDetails;
-      }
+      // If errorMapper returned an McpError without details, and we want to ensure
+      // consolidatedDetails are present, this would be a design choice.
+      // However, with 'details' being readonly, it must be set at construction.
+      // The current McpError constructor already takes details.
     } else {
       loggedErrorCode =
         explicitErrorCode || ErrorHandler.determineErrorCode(error);
       const message = `Error in ${operation}: ${originalErrorMessage}`;
+      // Pass consolidatedDetails directly to the constructor if not using errorMapper.
       finalError = errorMapper
         ? errorMapper(error)
         : new McpError(loggedErrorCode, message, consolidatedDetails);
-      if (finalError instanceof McpError && !finalError.details) {
-        (finalError as McpError).details = consolidatedDetails;
-      }
     }
 
     if (
