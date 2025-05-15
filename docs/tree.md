@@ -1,7 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-15 06:52:41
-
+Generated on: 2025-05-15 07:50:15
 
 ```
 mcp-ts-template
