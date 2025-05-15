@@ -71,12 +71,13 @@ Get the example server running in minutes:
     # Or use 'npm run rebuild' for a clean install (deletes node_modules, logs, dist)
     ```
 
-5.  **Format the code (Optional but Recommended):**
+4.  **Format the code (Optional but Recommended):**
+
     ```bash
     npm run format
     ```
 
-6.  **Run the Example Server:**
+5.  **Run the Example Server:**
 
     - **Via Stdio (Default):** Many MCP host applications will run this automatically using `stdio`. To run manually for testing:
       ```bash
