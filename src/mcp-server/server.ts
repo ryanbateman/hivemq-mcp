@@ -19,6 +19,7 @@ import http from "http"; // Import http module
 import { config, environment } from "../config/index.js";
 import { ErrorHandler, logger, requestContextService } from "../utils/index.js";
 import { registerEchoResource } from "./resources/echoResource/index.js";
+import { registerAllClientsTool } from "./tools/allClientsTool/index.js";
 import { registerEchoTool } from "./tools/echoTool/index.js";
 import { registerCatFactFetcherTool } from "./tools/catFactFetcher/index.js";
 import { startHttpTransport } from "./transports/httpTransport.js";
@@ -81,6 +82,7 @@ async function createMcpServerInstance(): Promise<McpServer> {
     await registerEchoResource(server);
     await registerEchoTool(server);
     await registerCatFactFetcherTool(server);
+    await registerAllClientsTool(server);
     logger.info("Resources and tools registered successfully", context);
   } catch (err) {
     logger.error("Failed to register resources/tools", {
