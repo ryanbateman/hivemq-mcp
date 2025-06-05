@@ -1,92 +1,73 @@
 /**
- * @fileoverview Defines the core logic, schemas, and types for the `All clients` tool.
+ * @fileoverview Defines the core logic, schemas, and types for the `Client Details` tool.
  * This module includes input validation using Zod, type definitions for input and output,
- * and the main processing function that the requests to list all clients.
- * @module src/mcp-server/tools/allClientsTool/allClientsToolLogic
+ * and the main processing function that the requests to list the details for a specific client.
+ * @module src/mcp-server/tools/allClientsTool/clientDetailsToolLogic
  */
 
 import { z } from "zod";
 import { fetchWithTimeout, logger, type RequestContext } from "../../../utils/index.js";
-import { ClientId, Clients } from "../../../types-global/hivemq.js";
+import { ClientDetails, ClientId, Clients } from "../../../types-global/hivemq.js";
 import { McpError, BaseErrorCode } from "../../../types-global/errors.js";
 
 /**
- * Zod schema defining the input parameters for the `all_clients` tool.
+ * Zod schema defining the input parameters for the `client_details` tool.
  * This schema is used by the MCP SDK to validate the arguments provided when the tool is called.
  */
-export const AllClientsInputSchema = z
+export const ClientDetailsInputSchema = z
   .object({
-    limit: z
-      .number()
-      .min(50, "Message cannot be empty.")
-      .max(2500, "Message cannot exceed 1000 characters.")
-      .default(50)
+    clientId: z
+      .string()
+      .min(1, "ClientID cannot be empty.")
       .describe(
-        "'Specifies the page size for the returned MQTT Client results. (50-2500)'",
-      ),
-    cursor: z
-      .string().
-      optional().
-      describe(
-        'The cursor that has been returned by the previous result page. Used to paginate through results. Do not pass if you require the first page.'
+        "'Specifies the ID of the client whose details you are requesting'",
       )
   })
   .describe(
-    "Zod schema for validating the input arguments for the all_clients tool.",
+    "Zod schema for validating the input arguments for the clientDetails tool.",
   );
 
 /**
- * TypeScript type inferred from `AllClientsToolInputSchema`.
+ * TypeScript type inferred from `ClientDetailssToolInputSchema`.
  * Represents the validated input parameters for the all clients tool.
  */
-export type AllClientsInput = z.infer<typeof AllClientsInputSchema>;
+export type ClientDetailsInput = z.infer<typeof ClientDetailsInputSchema>;
 
 /**
- * Defines the structure of the JSON payload returned by the `all_clients` tool handler.
+ * Defines the structure of the JSON payload returned by the `client_details` tool handler.
  * This object is JSON-stringified and placed within the `text` field of the
  * `CallToolResult`'s `content` array.
  */
 // Define the type based on Zod schema inference
-type ClientIdType = z.infer<typeof ClientId>;
-type ClientsType = z.infer<typeof Clients>;
+type ClientDetailsType = z.infer<typeof ClientDetails>;
 
-export interface AllClientsResponse {
-  limit: string;
-  items: ClientIdType[];
-}
-
-export interface AllClientsResponse {
-  limit: string;
-  items: ClientIdType[];
+export interface ClientDetailsResponse {
+  client: ClientDetailsType;
 }
 
 // --- Core Logic Function ---
 
 /**
- * Processes the core logic for the AllClients tool.
- * Returns the list of all currently connected clients.
+ * Processes the core logic for the ClientDetails tool.
+ * Returns the details of a client.
  *
- * @function processAllClientsMessage
- * @param {AllClientsToolInput} params - The validated input parameters for the allClients tool.
+ * @function processClientDetailsMessage
+ * @param {ClientDetailsToolInput} params - The validated input parameters for the client details tool.
  * @param {RequestContext} context - The request context for logging and tracing.
- * @returns {AllClientsResponse} The processed response data.
+ * @returns {AllClientsResponse} The processed response data, including the client details.
  */
-export const processAllClientsMessage = async (
-  params: AllClientsInput,
+export const processClientDetailsMessage = async (
+  params: ClientDetailsInput,
   context: RequestContext // Add context parameter
-): Promise<AllClientsResponse> => {
+): Promise<ClientDetailsResponse> => {
   // Use the passed context for logging
-  logger.debug("Processing all clients tool logic", { ...context, inputMessage: params.cursor, mode: params.limit });
+  logger.debug("Processing client details tool logic", { ...context, clientId: params.clientId });
 
   const API_TIMEOUT_MS = 5000;
 
   try {
     // Process the message according to the requested mode
-    const url = new URL("http://localhost:8000/api/v1/mqtt/clients/");
-    url.searchParams.append("limit", params.limit.toString());
-    if (params.cursor != null) {
-      url.searchParams.append("cursor", params.cursor);
-    }
+    const url = new URL(`http://localhost:8000/api/v1/mqtt/clients/${params.clientId}`);
 
     // Fetch and process the response
     const response = await fetchWithTimeout(
@@ -96,16 +77,16 @@ export const processAllClientsMessage = async (
     );
 
     if (!response.ok) {
-      logger.error("Error fetching clients", { ...context, status: response.status, statusText: response.statusText });
+      logger.error("Error fetching client details", { ...context, status: response.status, statusText: response.statusText });
       const errorText = await response.text();
       throw new McpError(
         BaseErrorCode.SERVICE_UNAVAILABLE,
-        `All Clients API request failed: ${response.status} ${response.statusText}`,
+        `Client details API request failed: ${response.status} ${response.statusText}`,
         {
           ...context,
           httpStatusCode: response.status,
           responseBodyBrief: errorText.substring(0, 200), // Log a snippet of the response
-          errorSource: "CatFactApiNonOkResponse",
+          errorSource: "ClientDetailsNonOkResponse",
         },
       );
     }
@@ -116,8 +97,7 @@ export const processAllClientsMessage = async (
 
     // Return the properly formatted response
     return {
-      limit: params.limit.toString(),
-      items: data.items || []
+      client: data.client
     };
 
   } catch (error) {

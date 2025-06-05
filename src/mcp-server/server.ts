@@ -20,10 +20,11 @@ import { config, environment } from "../config/index.js";
 import { ErrorHandler, logger, requestContextService } from "../utils/index.js";
 import { registerEchoResource } from "./resources/echoResource/index.js";
 import { registerAllClientsTool } from "./tools/allClientsTool/index.js";
+import { registerClientDetailsTool } from "./tools/clientDetailsTool/index.js";
 import { registerEchoTool } from "./tools/echoTool/index.js";
-import { registerCatFactFetcherTool } from "./tools/catFactFetcher/index.js";
 import { startHttpTransport } from "./transports/httpTransport.js";
 import { connectStdioTransport } from "./transports/stdioTransport.js";
+import { registerHealthAPIResource } from "./resources/healthAPIResource/registration.js";
 
 /**
  * Creates and configures a new instance of the `McpServer`.
@@ -80,9 +81,10 @@ async function createMcpServerInstance(): Promise<McpServer> {
   try {
     logger.debug("Registering resources and tools...", context);
     await registerEchoResource(server);
+    await registerHealthAPIResource(server);
     await registerEchoTool(server);
-    await registerCatFactFetcherTool(server);
     await registerAllClientsTool(server);
+    await registerClientDetailsTool(server);
     logger.info("Resources and tools registered successfully", context);
   } catch (err) {
     logger.error("Failed to register resources/tools", {

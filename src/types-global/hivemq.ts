@@ -7,3 +7,12 @@ export const ClientId = z.object({
 export const Clients = z.object({
     items: z.array(ClientId)
   });
+
+  export const ClientDetails = z.object({
+        id: z.string(),
+        connected: z.boolean(),
+        sessionExpiryInterval: z.number(),
+        messageQueueSize: z.number(),
+        willPresent: z.boolean()
+  });
+  
