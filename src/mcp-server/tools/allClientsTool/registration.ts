@@ -20,7 +20,9 @@ import { processAllClientsMessage } from './allClientsToolLogic.js';
  * @throws {McpError} Throws an McpError if the registration process fails critically.
  */
 export const registerAllClientsTool = async (server: McpServer): Promise<void> => {
-  const toolName = "list_all_clients"; // The unique identifier for the tool
+  const toolName = "list_clients"; // The unique identifier for the tool
+  const toolDescription =
+    "Retrieves a page from the list of all connected/disconnect clients known to the broker";
 
   // Create registration context using the service
   const registrationContext = requestContextService.createRequestContext({
@@ -37,6 +39,7 @@ export const registerAllClientsTool = async (server: McpServer): Promise<void> =
       // Register the tool using server.tool()
       server.tool(
         toolName,
+        toolDescription,
         // --- Tool Input Schema (Raw Shape) ---
         // Pass the raw shape of the Zod schema. The SDK uses this for validation.
         // Descriptions from the schema's .describe() calls are likely used for metadata.

@@ -20,6 +20,7 @@ import { config, environment } from "../config/index.js";
 import { ErrorHandler, logger, requestContextService } from "../utils/index.js";
 import { registerEchoResource } from "./resources/echoResource/index.js";
 import { registerAllClientsTool } from "./tools/allClientsTool/index.js";
+import { registerHealthStatusTool } from "./tools/healthStatusTool/index.js";
 import { registerClientDetailsTool } from "./tools/clientDetailsTool/index.js";
 import { registerEchoTool } from "./tools/echoTool/index.js";
 import { startHttpTransport } from "./transports/httpTransport.js";
@@ -85,6 +86,7 @@ async function createMcpServerInstance(): Promise<McpServer> {
     await registerEchoTool(server);
     await registerAllClientsTool(server);
     await registerClientDetailsTool(server);
+    await registerHealthStatusTool(server);
     logger.info("Resources and tools registered successfully", context);
   } catch (err) {
     logger.error("Failed to register resources/tools", {
