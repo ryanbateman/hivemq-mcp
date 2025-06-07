@@ -1,6 +1,6 @@
 # mcp-ts-template - Directory Structure
 
-Generated on: 2025-05-31 13:36:29
+Generated on: 2025-06-06 00:26:45
 
 ```
 mcp-ts-template
@@ -15,11 +15,11 @@ mcp-ts-template
 │   │   ├── jsdoc-standard-tags.md
 │   │   └── typedoc-reference.md
 │   └── tree.md
-├── duckdata
 ├── scripts
 │   ├── clean.ts
 │   ├── fetch-openapi-spec.ts
 │   ├── make-executable.ts
+│   ├── README.md
 │   └── tree.ts
 ├── src
 │   ├── config
@@ -27,7 +27,8 @@ mcp-ts-template
 │   ├── mcp-client
 │   │   ├── client-config
 │   │   │   ├── configLoader.ts
-│   │   │   └── mcp-config.json.example
+│   │   │   ├── mcp-config.json.example
+│   │   │   └── README.md
 │   │   ├── core
 │   │   │   ├── clientCache.ts
 │   │   │   ├── clientConnectionLogic.ts
@@ -46,12 +47,12 @@ mcp-ts-template
 │   │   │       └── registration.ts
 │   │   ├── tools
 │   │   │   ├── catFactFetcher
-│   │   │   │   ├── catFactFetcherLogic.ts
-│   │   │   │   ├── catFactFetcherRegistration.ts
-│   │   │   │   └── index.ts
-│   │   │   ├── echoTool
-│   │   │   │   ├── echoToolLogic.ts
 │   │   │   │   ├── index.ts
+│   │   │   │   ├── logic.ts
+│   │   │   │   └── registration.ts
+│   │   │   ├── echoTool
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── logic.ts
 │   │   │   │   └── registration.ts
 │   │   │   └── imageTest
 │   │   │       ├── index.ts
@@ -62,6 +63,7 @@ mcp-ts-template
 │   │   │   │   └── authMiddleware.ts
 │   │   │   ├── httpTransport.ts
 │   │   │   └── stdioTransport.ts
+│   │   ├── README.md
 │   │   └── server.ts
 │   ├── services
 │   │   ├── duck-db
@@ -70,12 +72,9 @@ mcp-ts-template
 │   │   │   ├── duckDBService.ts
 │   │   │   └── types.ts
 │   │   ├── llm-providers
-│   │   │   ├── openRouter
-│   │   │   │   ├── index.ts
-│   │   │   │   └── openRouterProvider.ts
-│   │   │   ├── index.ts
-│   │   │   └── llmFactory.ts
-│   │   └── index.ts
+│   │   │   └── openRouterProvider.ts
+│   │   └── supabase
+│   │       └── supabaseClient.ts
 │   ├── storage
 │   │   └── duckdbExample.ts
 │   ├── types-global
@@ -105,6 +104,7 @@ mcp-ts-template
 │   └── index.ts
 ├── .clinerules
 ├── .dockerignore
+├── .env.example
 ├── .gitignore
 ├── .ncurc.json
 ├── CHANGELOG.md

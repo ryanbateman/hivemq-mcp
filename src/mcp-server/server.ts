@@ -14,14 +14,15 @@
  * @module src/mcp-server/server
  */
 
+import { ServerType } from "@hono/node-server";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import http from "http"; // Import http module
 import { config, environment } from "../config/index.js";
 import { ErrorHandler, logger, requestContextService } from "../utils/index.js";
 import { registerEchoResource } from "./resources/echoResource/index.js";
 import { registerAllClientsTool } from "./tools/allClientsTool/index.js";
 import { registerHealthStatusTool } from "./tools/healthStatusTool/index.js";
 import { registerClientDetailsTool } from "./tools/clientDetailsTool/index.js";
+import { registerCatFactFetcherTool } from "./tools/catFactFetcher/index.js";
 import { registerEchoTool } from "./tools/echoTool/index.js";
 import { startHttpTransport } from "./transports/httpTransport.js";
 import { connectStdioTransport } from "./transports/stdioTransport.js";
@@ -112,7 +113,7 @@ async function createMcpServerInstance(): Promise<McpServer> {
  * @throws {Error} If transport type is unsupported or setup fails.
  * @private
  */
-async function startTransport(): Promise<McpServer | http.Server | void> {
+async function startTransport(): Promise<McpServer | ServerType | void> {
   const transportType = config.mcpTransportType;
   const context = requestContextService.createRequestContext({
     operation: "startTransport",
@@ -163,7 +164,7 @@ async function startTransport(): Promise<McpServer | http.Server | void> {
  *   Rejects on critical failure, leading to process exit.
  */
 export async function initializeAndStartServer(): Promise<
-  void | McpServer | http.Server
+  void | McpServer | ServerType
 > {
   const context = requestContextService.createRequestContext({
     operation: "initializeAndStartServer",

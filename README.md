@@ -3,34 +3,47 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-^5.8.3-blue.svg)](https://www.typescriptlang.org/)
 [![Model Context Protocol SDK](https://img.shields.io/badge/MCP%20SDK-1.12.1-green.svg)](https://github.com/modelcontextprotocol/typescript-sdk)
 [![MCP Spec Version](https://img.shields.io/badge/MCP%20Spec-2025--03--26-lightgrey.svg)](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2025-03-26/changelog.mdx)
-[![Version](https://img.shields.io/badge/Version-1.4.1-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.4.8-blue.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Status](https://img.shields.io/badge/Status-Stable-green.svg)](https://github.com/cyanheads/mcp-ts-template/issues)
 [![GitHub](https://img.shields.io/github/stars/cyanheads/mcp-ts-template?style=social)](https://github.com/cyanheads/mcp-ts-template)
 
-**Jumpstart your [Model Context Protocol (MCP) Client & Server](https://modelcontextprotocol.io/) development with this TypeScript Repo Template!**
+**Jumpstart your [Model Context Protocol (MCP) Client & Server](https://modelcontextprotocol.io/) development with this TypeScript MCP Repo Template!**
 
 This template provides a solid, beginner-friendly foundation for building robust MCP servers and clients, adhering to the **MCP 2025-03-26 specification**. It includes production-ready utilities, a well-structured codebase, working examples, and clear documentation to get you up and running quickly.
 
 Whether you're creating a new MCP server to extend an AI's capabilities or integrating MCP client features into your application, this template is your starting point.
 
+## 📋 Table of Contents
+
+- [✨ Key Features](#-key-features)
+- [🌟 Projects Using This Template](#-projects-using-this-template)
+- [🏁 Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [🔩 Server Configuration (Environment Variables)](#-server-configuration-environment-variables)
+- [🏗️ Project Structure](#️-project-structure)
+- [🧩 Extending the MCP Server](#-extending-the-mcp-server)
+- [🌍 More MCP Resources](#-explore-more-mcp-resources)
+- [📜 License](#-license)
+- [📊 Detailed Features Table](#-detailed-features-table)
+
 ## ✨ Key Features
 
-| Feature Area                | Description                                                                                                                                                                  | Key Components / Location                                                      |
-| :-------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| Feature Area                | Description                                                                                                                                                                   | Key Components / Location                                                      |
+| :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
 | **🔌 MCP Server**           | Functional server with example tools (`EchoTool`, `CatFactFetcher` for async/Promise API example) and an `EchoResource`. Supports `stdio` and **Streamable HTTP** transports. | `src/mcp-server/`                                                              |
-| **💻 MCP Client**           | Working client aligned with **MCP 2025-03-26 spec**. Connects via `mcp-config.json`. Includes detailed comments.                                                             | `src/mcp-client/`                                                              |
-| **🚀 Production Utilities** | Logging, Error Handling, ID Generation, Rate Limiting, Request Context tracking, Input Sanitization.                                                                         | `src/utils/`                                                                   |
-| **🔒 Type Safety/Security** | Strong type checking via TypeScript & Zod validation. Built-in security utilities (sanitization, auth middleware stub for HTTP).                                             | Throughout, `src/utils/security/`, `src/mcp-server/transports/authentication/` |
-| **⚙️ Error Handling**       | Consistent error categorization (`BaseErrorCode`), detailed logging, centralized handling (`ErrorHandler`).                                                                  | `src/utils/internal/errorHandler.ts`, `src/types-global/`                      |
-| **📚 Documentation**        | Comprehensive `README.md`, structured JSDoc comments, API references                                                                                                         | `README.md`, Codebase, `tsdoc.json`, `docs/api-references/`                    |
-| **🤖 Agent Ready**          | Includes a [.clinerules](.clinerules) developer cheatsheet tailored for LLM coding agents.                                                                                   | `.clinerules`                                                                  |
-| **🛠️ Utility Scripts**      | Scripts for cleaning builds, setting executable permissions, generating directory trees, and fetching OpenAPI specs.                                                         | `scripts/`                                                                     |
-| **🧩 Services**             | Reusable modules for LLM (OpenRouter) and data storage (DuckDB) integration, with examples.                                                                                  | `src/services/`, `src/storage/duckdbExample.ts`, `                             |
+| **💻 MCP Client**           | Working client aligned with **MCP 2025-03-26 spec**. Connects via `mcp-config.json`. Includes detailed comments.                                                              | `src/mcp-client/`                                                              |
+| **🚀 Production Utilities** | Logging, Error Handling, ID Generation, Rate Limiting, Request Context tracking, Input Sanitization.                                                                          | `src/utils/`                                                                   |
+| **🔒 Type Safety/Security** | Strong type checking via TypeScript & Zod validation. Built-in security utilities (sanitization, auth middleware stub for HTTP).                                              | Throughout, `src/utils/security/`, `src/mcp-server/transports/authentication/` |
+| **⚙️ Error Handling**       | Consistent error categorization (`BaseErrorCode`), detailed logging, centralized handling (`ErrorHandler`).                                                                   | `src/utils/internal/errorHandler.ts`, `src/types-global/`                      |
+| **📚 Documentation**        | Comprehensive `README.md`, structured JSDoc comments, API references                                                                                                          | `README.md`, Codebase, `tsdoc.json`, `docs/api-references/`                    |
+| **🤖 Agent Ready**          | Includes a [.clinerules](.clinerules) developer cheatsheet tailored for LLM coding agents.                                                                                    | `.clinerules`                                                                  |
+| **🛠️ Utility Scripts**      | Scripts for cleaning builds, setting executable permissions, generating directory trees, and fetching OpenAPI specs.                                                          | `scripts/`                                                                     |
+| **🧩 Services**             | Reusable modules for LLM (OpenRouter) and data storage (DuckDB) integration, with examples.                                                                                   | `src/services/`, `src/storage/duckdbExample.ts`                                |
 
 _For a more granular breakdown, see the [Detailed Features Table](#detailed-features-table) below._
 
-## 🚀 Projects Using This Template
+## 🌟 Projects Using This Template
 
 This template is already powering several MCP servers, demonstrating its flexibility and robustness:
 
@@ -46,11 +59,7 @@ _Note: [**toolkit-mcp-server**](https://github.com/cyanheads/toolkit-mcp-server)
 
 You can also **see my [GitHub profile](https://github.com/cyanheads/)** for additional MCP servers I've created, many of which are planned to be migrated to or built upon this template in the future.
 
-## 📋 Table of Contents
-
-[✨ Key Features](#-key-features) | [🚀 Projects Using This Template](#-projects-using-this-template) | [🚀 Quick Start](#quick-start) | [⚙️ Configuration](#️-configuration) | [Server Configuration](#server-configuration-environment-variables) | [Client Configuration](#client-configuration-mcp-configjson) | [🏗️ Project Structure](#️-project-structure) | [🧩 Adding Tools/Resources](#-adding-your-own-tools--resources) | [🌍 More MCP Resources](#-explore-more-mcp-resources) | [📜 License](#-license) | [Detailed Features](#detailed-features-table)
-
-## Quick Start
+## 🏁 Quick Start
 
 Get the example server running in minutes:
 
@@ -95,7 +104,7 @@ Get the example server running in minutes:
 
 ## ⚙️ Configuration
 
-### Server Configuration (Environment Variables)
+### 🔩 Server Configuration (Environment Variables)
 
 Configure the MCP server's behavior using these environment variables:
 
@@ -111,94 +120,44 @@ Configure the MCP server's behavior using these environment variables:
 | `LOGS_DIR`                | Directory for log files.                                                                            | `logs/` (in project root)               |
 | `NODE_ENV`                | Runtime environment (`development`, `production`).                                                  | `development`                           |
 | `MCP_AUTH_SECRET_KEY`     | **Required for HTTP transport.** Secret key (min 32 chars) for signing/verifying auth tokens (JWT). | (none - **MUST be set in production**)  |
-| `OPENROUTER_APP_URL`      | URL of the application (used by OpenRouter service for HTTP Referer).                               | `http://localhost:3000`                 |
-| `OPENROUTER_APP_NAME`     | Name of the application (used by OpenRouter service for X-Title header).                            | 'mcp-ts-template'                       |
 | `OPENROUTER_API_KEY`      | API key for OpenRouter.ai service. Optional, but service will be unconfigured without it.           | (none)                                  |
 | `LLM_DEFAULT_MODEL`       | Default model to use for LLM calls via OpenRouter.                                                  | `google/gemini-2.5-flash-preview-05-20` |
 | `LLM_DEFAULT_TEMPERATURE` | Default temperature for LLM calls (0-2). Optional.                                                  | (none)                                  |
-| `LLM_DEFAULT_TOP_P`       | Default top_p for LLM calls (0-1). Optional.                                                        | (none)                                  |
-| `LLM_DEFAULT_MAX_TOKENS`  | Default max_tokens for LLM calls. Optional.                                                         | (none)                                  |
-| `LLM_DEFAULT_TOP_K`       | Default top_k for LLM calls (non-negative integer). Optional.                                       | (none)                                  |
-| `LLM_DEFAULT_MIN_P`       | Default min_p for LLM calls (0-1). Optional.                                                        | (none)                                  |
 
 **Note on HTTP Port Retries:** If the `MCP_HTTP_PORT` is busy, the server automatically tries the next port (up to 15 times).
 
 **Security Note for HTTP Transport:** When using `MCP_TRANSPORT_TYPE=http`, authentication is **mandatory** as per the MCP specification. This template includes JWT-based authentication middleware (`src/mcp-server/transports/authentication/authMiddleware.ts`). You **MUST** set a strong, unique `MCP_AUTH_SECRET_KEY` in your production environment for this security mechanism to function correctly. Failure to do so will result in bypassed authentication checks in development and fatal errors in production.
 
-### Client Configuration (`src/mcp-client/client-config/mcp-config.json`)
+### 🔌 Client Configuration
 
-Configure the connections for the built-in **MCP client** using `src/mcp-client/client-config/mcp-config.json`. If this file is missing, it falls back to `src/mcp-client/client-config/mcp-config.json.example`.
-
-This file defines external MCP servers the client can connect to. The client implementation adheres to the **MCP 2025-03-26 specification**.
-
-**Example `mcp-config.json` (see `src/mcp-client/client-config/mcp-config.json.example` for the full version):**
-
-```json
-{
-  "mcpServers": {
-    "my-stdio-server": {
-      "command": "node", // Command or executable
-      "args": ["/path/to/my-server/index.js"], // Arguments for stdio
-      "env": { "LOG_LEVEL": "debug" }, // Optional environment variables
-      "transportType": "stdio" // Explicitly stdio (or omit for default)
-    },
-    "my-http-server": {
-      "command": "http://localhost:8080", // Base URL for HTTP
-      "args": [], // Not used for HTTP
-      "env": {}, // Not used for HTTP
-      "transportType": "http" // Explicitly http
-    }
-    // ... add other servers
-  }
-}
-```
-
-- **`command`**: Executable path (`stdio`) or Base URL (`http`).
-- **`args`**: Array of arguments (required for `stdio`).
-- **`env`**: Optional environment variables to set for the server process (`stdio`).
-- **`transportType`**: `stdio` (default) or `http`.
-
-See `src/mcp-client/client-config/configLoader.ts` for the Zod validation schema and `src/mcp-client/client-config/mcp-config.json.example` for a complete example.
+For detailed information on configuring the built-in **MCP client**, including how to set up connections to external MCP servers using `mcp-config.json`, please see the [Client Configuration Guide](src/mcp-client/client-config/README.md).
 
 ## 🏗️ Project Structure
 
-The `src/` directory is organized for clarity:
+This project follows a standard TypeScript project layout. Here's an overview of the key directories and files:
 
-- `config/`: Loads environment variables and package info.
-- `mcp-client/`: Logic for the client connecting to _external_ MCP servers (updated to MCP 2025-03-26 spec).
-  - `client-config/`: Handles loading and validation of `mcp-config.json`.
-    - `configLoader.ts`: Loads and validates server configurations.
-    - `mcp-config.json.example`: Example configuration file.
-  - `core/`: Core client logic including connection management and caching.
-    - `clientManager.ts`: Manages client instances and their lifecycle.
-    - `clientConnectionLogic.ts`: Handles the details of connecting and initializing with servers.
-    - `clientCache.ts`: Caches active client connections.
-  - `transports/`: Manages different communication transports (Stdio, HTTP).
-    - `transportFactory.ts`: Creates appropriate transport instances.
-    - `stdioClientTransport.ts`: Implements Stdio transport.
-    - `httpClientTransport.ts`: Implements HTTP transport.
-  - `index.ts`: Barrel file exporting key client functionalities.
-- `mcp-server/`: Logic for the MCP server _provided by this template_.
-  - `server.ts`: Initializes the server, registers tools/resources.
-  - `resources/`: Example resource implementations (e.g., `EchoResource`).
-  - `tools/`: Example tool implementations (e.g., `EchoTool`, and `CatFactFetcher` demonstrating async/Promise API calls).
-  - `transports/`: Handles `stdio` and `http` communication for the server.
-- `services/`: Contains service integrations.
-  - `duck-db/`: Service for interacting with DuckDB, an in-process analytical data management system.
-    - `duckDBConnectionManager.ts`: Manages DuckDB instance and connection lifecycle.
-    - `duckDBQueryExecutor.ts`: Executes SQL queries and manages transactions.
-    - `duckDBService.ts`: Main service class for DuckDB interaction.
-    - `types.ts`: TypeScript types and interfaces for the DuckDB service.
-  - `llm-providers/`: API Providers for Large Language Models.
-    - `openRouter/`: OpenRouter provider implementation.
-    - `llmFactory.ts`: Factory for creating LLM provider clients.
-    - `index.ts`: Barrel file for all LLM providers.
-  - `index.ts`: Barrel file for services.
-- `storage/`: Example usage of services, e.g., `duckdbExample.ts`.
-- `types-global/`: Shared TypeScript definitions (Errors, MCP types).
-- `utils/`: Reusable utilities (logging, errors, security, parsing, etc.). Exported via `index.ts`.
+- **`.clinerules`**: Developer cheatsheet and guidelines for LLM coding agents working with this repository.
+- **`docs/`**: Contains project documentation, including API references and the auto-generated `tree.md` file.
+- **`scripts/`**: Utility scripts for development tasks like cleaning builds, generating directory trees, and fetching OpenAPI specs.
+- **`src/`**: The heart of the application, containing all TypeScript source code.
+  - `src/config/`: Handles loading and validation of environment variables and application configuration.
+  - `src/mcp-client/`: Implements the MCP client logic for connecting to and interacting with external MCP servers. This includes client configuration, core connection management, and transport handlers.
+  - `src/mcp-server/`: Contains the MCP server implementation provided by this template, including example tools, resources, and transport handlers (Stdio, HTTP).
+  - `src/services/`: Provides reusable modules for integrating with external services, such as DuckDB for local data storage and OpenRouter for LLM access.
+  - `src/types-global/`: Defines shared TypeScript interfaces and type definitions used across the project, particularly for error handling and MCP-specific types.
+  - `src/utils/`: A collection of core utilities.
+    - `src/utils/internal/`: Core internal utilities like the logger, error handler, and request context management.
+    - `src/utils/metrics/`: Utilities related to metrics, such as token counting.
+    - `src/utils/network/`: Network-related utilities, like fetch with timeout.
+    - `src/utils/parsing/`: Utilities for parsing data, such as dates and JSON.
+    - `src/utils/security/`: Security-focused utilities including ID generation, rate limiting, and input sanitization.
+  - `src/index.ts`: The main entry point for the application, responsible for initializing and starting the MCP server. The MCP client is meant to be built upon, so it does not have a dedicated entry point in this template.
+- **`package.json`**: Defines project metadata, dependencies, and npm scripts.
+- **`README.md`**: This file, providing an overview of the project.
+- **`tsconfig.json`**: TypeScript compiler options for the project.
+- **`LICENSE`**: Apache 2.0 License file.
 
-**Explore the structure yourself:**
+**Explore the full structure yourself:**
 
 See the current file tree in [docs/tree.md](docs/tree.md) or generate it dynamically:
 
@@ -206,23 +165,11 @@ See the current file tree in [docs/tree.md](docs/tree.md) or generate it dynamic
 npm run tree
 ```
 
-(This uses `scripts/tree.ts` to generate a current file tree.)
+(This uses `scripts/tree.ts` to generate a current file tree, respecting `.gitignore`.)
 
-## 🧩 Adding Your Own Tools & Resources
+## 🧩 Extending the MCP Server
 
-This template is designed for extension! Follow the high-level SDK patterns:
-
-1.  **Create Directories**: Add new directories under `src/mcp-server/tools/yourToolName/` or `src/mcp-server/resources/yourResourceName/`.
-2.  **Implement Logic (`logic.ts`)**: Define Zod schemas for inputs/outputs and write your core processing function.
-3.  **Register (`registration.ts`)**:
-    - **Tools**: Use `server.tool(name, description, zodSchemaShape, handler)` (SDK v1.10.2+). This handles schema generation, validation, and routing. Remember to add relevant annotations (`readOnlyHint`, `destructiveHint`, etc.) as untrusted hints.
-    - **Resources**: Use `server.resource(regName, template, metadata, handler)`.
-    - Wrap logic in `ErrorHandler.tryCatch` for robust error handling.
-4.  **Export & Import**: Export the registration function from your new directory's `index.ts` and call it within `createMcpServerInstance` in `src/mcp-server/server.ts`.
-
-Refer to the included `EchoTool` and `EchoResource` examples and the [.clinerules](.clinerules) cheatsheet for detailed patterns.
-
-For an example of a tool that performs asynchronous operations, such as making an external API call, see the `get_random_cat_fact` tool located in `src/mcp-server/tools/catFactFetcher/`. This tool demonstrates how to use `async/await` within your tool's logic and handler, manage Promises, and integrate external data sources.
+For detailed guidance on how to add your own custom Tools and Resources to this MCP server template, including workflow examples and best practices, please see the [Server Extension Guide](src/mcp-server/README.md).
 
 ## 🌍 Explore More MCP Resources
 
@@ -236,40 +183,40 @@ This collection includes servers for Filesystem, Obsidian, Git, GitHub, Perplexi
 
 This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
-## Detailed Features Table
+## 📊 Detailed Features Table
 
-| Category                 | Feature                         | Description                                                                                                                                                                                                                                          | Location(s)                                                                          |
-| :----------------------- | :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------- |
-| **Core Components**      | MCP Server                      | Core server logic, tool/resource registration, transport handling. Includes Echo Tool & Resource examples.                                                                                                                                           | `src/mcp-server/`                                                                    |
-|                          | MCP Client                      | Logic for connecting to external MCP servers (updated to **MCP 2025-03-26 spec**). Refactored for modularity.                                                                                                                                        | `src/mcp-client/` (see subdirs: `core/`, `client-config/`, `transports/`)            |
-|                          | Configuration                   | Environment-aware settings with Zod validation.                                                                                                                                                                                                      | `src/config/`, `src/mcp-client/client-config/configLoader.ts`                        |
-|                          | Streamable HTTP Transport       | Express-based server implementing the MCP **Streamable HTTP** transport (utilizing Server-Sent Events for server-to-client streaming), with session management, CORS, and port retries.                                                              | `src/mcp-server/transports/httpTransport.ts`                                         |
-|                          | Stdio Transport                 | Handles MCP communication over standard input/output.                                                                                                                                                                                                | `src/mcp-server/transports/stdioTransport.ts`                                        |
-| **Utilities (Core)**     | Logger                          | Structured, context-aware logging (files with rotation & MCP notifications).                                                                                                                                                                         | `src/utils/internal/logger.ts`                                                       |
-|                          | ErrorHandler                    | Centralized error processing, classification, and logging.                                                                                                                                                                                           | `src/utils/internal/errorHandler.ts`                                                 |
-|                          | RequestContext                  | Request/operation tracking and correlation.                                                                                                                                                                                                          | `src/utils/internal/requestContext.ts`                                               |
-| **Utilities (Metrics)**  | TokenCounter                    | Estimates token counts using `tiktoken`.                                                                                                                                                                                                             | `src/utils/metrics/tokenCounter.ts`                                                  |
-| **Utilities (Parsing)**  | DateParser                      | Parses natural language date strings using `chrono-node`.                                                                                                                                                                                            | `src/utils/parsing/dateParser.ts`                                                    |
-|                          | JsonParser                      | Parses potentially partial JSON, handles `<think>` blocks.                                                                                                                                                                                           | `src/utils/parsing/jsonParser.ts`                                                    |
-| **Utilities (Security)** | IdGenerator                     | Generates unique IDs (prefixed or UUIDs).                                                                                                                                                                                                            | `src/utils/security/idGenerator.ts`                                                  |
-|                          | RateLimiter                     | Request throttling based on keys.                                                                                                                                                                                                                    | `src/utils/security/rateLimiter.ts`                                                  |
-|                          | Sanitization                    | Input validation/cleaning (HTML, paths, URLs, numbers, JSON) & log redaction (`validator`, `sanitize-html`).                                                                                                                                         | `src/utils/security/sanitization.ts`                                                 |
-| **Services**             | DuckDB Integration              | Reusable module for in-process analytical data management using DuckDB. A storage layer that runs on the same level as the application. Includes connection management, query execution, and example usage. Integrated with our utils (logger, etc.) | `src/services/duck-db/`, `src/storage/duckdbExample.ts`                              |
-|                          | OpenRouter LLM Integration      | Reusable module for interacting with various LLMs via the OpenRouter API (OpenAI SDK compatible). Includes a factory for client instantiation. Integrated with our utils (logger, etc.)                                                              | `src/services/llm-providers/openRouter/`, `src/services/llm-providers/llmFactory.ts` |
-| **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP types).                                                                                                                                                                         | `src/types-global/`                                                                  |
-|                          | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.                                                                                                                                                                          | Throughout (`config`, `mcp-client`, tools, etc.)                                     |
-| **Error Handling**       | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                                                                                                                                                           | `src/utils/internal/errorHandler.ts`                                                 |
-|                          | Consistent Formatting           | Standardized error responses with additional context.                                                                                                                                                                                                | `src/utils/internal/errorHandler.ts`                                                 |
-|                          | Safe Try/Catch Patterns         | Centralized error processing helpers (`ErrorHandler.tryCatch`).                                                                                                                                                                                      | `src/utils/internal/errorHandler.ts`                                                 |
-|                          | Client/Transport Error Handling | Specific handlers for MCP client and transport error handling.                                                                                                                                                                                       | `src/mcp-client/core/`, `src/mcp-client/transports/`                                 |
-| **Security**             | Input Validation                | Using `validator` and `zod` for various data type checks.                                                                                                                                                                                            | `src/utils/security/sanitization.ts`, etc.                                           |
-|                          | Input Sanitization              | Using `sanitize-html` to prevent injection attacks.                                                                                                                                                                                                  | `src/utils/security/sanitization.ts`                                                 |
-|                          | Sensitive Data Redaction        | Automatic redaction in logs.                                                                                                                                                                                                                         | `src/utils/security/sanitization.ts`                                                 |
-|                          | Configuration Fallback          | Safely falls back to `mcp-config.json.example` if primary client config is missing.                                                                                                                                                                  | `src/mcp-client/client-config/configLoader.ts`                                       |
-| **Scripts**              | Clean Script                    | Removes `dist` and `logs` directories (or custom targets).                                                                                                                                                                                           | `scripts/clean.ts`                                                                   |
-|                          | Make Executable Script          | Sets executable permissions (`chmod +x`) on specified files (Unix-like only).                                                                                                                                                                        | `scripts/make-executable.ts`                                                         |
-|                          | Tree Script                     | Generates a directory structure tree, respecting `.gitignore`.                                                                                                                                                                                       | `scripts/tree.ts`                                                                    |
-|                          | Fetch OpenAPI Spec Script       | Fetches an OpenAPI spec (YAML/JSON) from a URL with fallbacks, saves locally.                                                                                                                                                                        | `scripts/fetch-openapi-spec.ts`                                                      |
+| Category                 | Feature                         | Description                                                                                                                                                                                                                                          | Location(s)                                                               |
+| :----------------------- | :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------ |
+| **Core Components**      | MCP Server                      | Core server logic, tool/resource registration, transport handling. Includes Echo Tool & Resource examples.                                                                                                                                           | `src/mcp-server/`                                                         |
+|                          | MCP Client                      | Logic for connecting to external MCP servers (updated to **MCP 2025-03-26 spec**). Refactored for modularity.                                                                                                                                        | `src/mcp-client/` (see subdirs: `core/`, `client-config/`, `transports/`) |
+|                          | Configuration                   | Environment-aware settings with Zod validation.                                                                                                                                                                                                      | `src/config/`, `src/mcp-client/client-config/configLoader.ts`             |
+|                          | Streamable HTTP Transport       | Hono-based server implementing the MCP **Streamable HTTP** transport with session management, CORS, and port retries.                                                                                                                                | `src/mcp-server/transports/httpTransport.ts`                              |
+|                          | Stdio Transport                 | Handles MCP communication over standard input/output.                                                                                                                                                                                                | `src/mcp-server/transports/stdioTransport.ts`                             |
+| **Utilities (Core)**     | Logger                          | Structured, context-aware logging (files with rotation & MCP notifications).                                                                                                                                                                         | `src/utils/internal/logger.ts`                                            |
+|                          | ErrorHandler                    | Centralized error processing, classification, and logging.                                                                                                                                                                                           | `src/utils/internal/errorHandler.ts`                                      |
+|                          | RequestContext                  | Request/operation tracking and correlation.                                                                                                                                                                                                          | `src/utils/internal/requestContext.ts`                                    |
+| **Utilities (Metrics)**  | TokenCounter                    | Estimates token counts using `tiktoken`.                                                                                                                                                                                                             | `src/utils/metrics/tokenCounter.ts`                                       |
+| **Utilities (Parsing)**  | DateParser                      | Parses natural language date strings using `chrono-node`.                                                                                                                                                                                            | `src/utils/parsing/dateParser.ts`                                         |
+|                          | JsonParser                      | Parses potentially partial JSON, handles `<think>` blocks.                                                                                                                                                                                           | `src/utils/parsing/jsonParser.ts`                                         |
+| **Utilities (Security)** | IdGenerator                     | Generates unique IDs (prefixed or UUIDs).                                                                                                                                                                                                            | `src/utils/security/idGenerator.ts`                                       |
+|                          | RateLimiter                     | Request throttling based on keys.                                                                                                                                                                                                                    | `src/utils/security/rateLimiter.ts`                                       |
+|                          | Sanitization                    | Input validation/cleaning (HTML, paths, URLs, numbers, JSON) & log redaction (`validator`, `sanitize-html`).                                                                                                                                         | `src/utils/security/sanitization.ts`                                      |
+| **Services**             | DuckDB Integration              | Reusable module for in-process analytical data management using DuckDB. A storage layer that runs on the same level as the application. Includes connection management, query execution, and example usage. Integrated with our utils (logger, etc.) | `src/services/duck-db/`, `src/storage/duckdbExample.ts`                   |
+|                          | OpenRouter LLM Integration      | Reusable module for interacting with various LLMs via the OpenRouter API (OpenAI SDK compatible). Integrated with our utils (logger, etc.)                                                                                                           | `src/services/llm-providers/openRouterProvider.ts`                        |
+| **Type Safety**          | Global Types                    | Shared TypeScript definitions for consistent interfaces (Errors, MCP types).                                                                                                                                                                         | `src/types-global/`                                                       |
+|                          | Zod Schemas                     | Used for robust validation of configuration files and tool/resource inputs.                                                                                                                                                                          | Throughout (`config`, `mcp-client`, tools, etc.)                          |
+| **Error Handling**       | Pattern-Based Classification    | Automatically categorize errors based on message patterns.                                                                                                                                                                                           | `src/utils/internal/errorHandler.ts`                                      |
+|                          | Consistent Formatting           | Standardized error responses with additional context.                                                                                                                                                                                                | `src/utils/internal/errorHandler.ts`                                      |
+|                          | Safe Try/Catch Patterns         | Centralized error processing helpers (`ErrorHandler.tryCatch`).                                                                                                                                                                                      | `src/utils/internal/errorHandler.ts`                                      |
+|                          | Client/Transport Error Handling | Specific handlers for MCP client and transport error handling.                                                                                                                                                                                       | `src/mcp-client/core/`, `src/mcp-client/transports/`                      |
+| **Security**             | Input Validation                | Using `validator` and `zod` for various data type checks.                                                                                                                                                                                            | `src/utils/security/sanitization.ts`, etc.                                |
+|                          | Input Sanitization              | Using `sanitize-html` to prevent injection attacks.                                                                                                                                                                                                  | `src/utils/security/sanitization.ts`                                      |
+|                          | Sensitive Data Redaction        | Automatic redaction in logs.                                                                                                                                                                                                                         | `src/utils/security/sanitization.ts`                                      |
+|                          | Configuration Validation        | Throws a descriptive error if the primary client config (`mcp-config.json`) is missing, preventing fallback to a potentially insecure example file.                                                                                                  | `src/mcp-client/client-config/configLoader.ts`                            |
+| **Scripts**              | Clean Script                    | Removes `dist` and `logs` directories (or custom targets).                                                                                                                                                                                           | `scripts/clean.ts`                                                        |
+|                          | Make Executable Script          | Sets executable permissions (`chmod +x`) on specified files (Unix-like only).                                                                                                                                                                        | `scripts/make-executable.ts`                                              |
+|                          | Tree Script                     | Generates a directory structure tree, respecting `.gitignore`.                                                                                                                                                                                       | `scripts/tree.ts`                                                         |
+|                          | Fetch OpenAPI Spec Script       | Fetches an OpenAPI spec (YAML/JSON) from a URL with fallbacks, saves locally.                                                                                                                                                                        | `scripts/fetch-openapi-spec.ts`                                           |
 
 ---
 

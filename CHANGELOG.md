@@ -2,6 +2,152 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.9] - 2025-06-05
+
+### Changed
+
+- **Client Configuration**: Removed the fallback to `mcp-config.json.example` in the client configuration loader, enforcing a stricter requirement for an explicit `mcp-config.json` file.
+- **Documentation**:
+  - Updated `.clinerules` (developer cheatsheet) with a detailed example of using the MCP client and a concrete example of tool registration.
+  - Updated `README.md` to reflect the Hono migration and the stricter client configuration.
+  - Updated `src/mcp-client/client-config/README.md` to clarify the removal of the configuration fallback.
+  - Updated `src/mcp-server/README.md` to include the `imageTest` tool in the list of examples.
+
+## [1.4.8] - 2025-06-05
+
+### BREAKING CHANGE
+
+- **HTTP Server Migration**: The HTTP transport layer in `src/mcp-server/transports/httpTransport.ts` has been migrated from **Express.js to Hono**. This is a significant architectural change that improves performance and leverages a more modern, lightweight framework. While the external API remains the same, internal middleware and request handling logic have been completely rewritten.
+
+### Added
+
+- **Supabase Client**: Added a dedicated Supabase client service in `src/services/supabase/supabaseClient.ts` for robust interaction with Supabase services.
+
+### Changed
+
+- **Configuration**: Overhauled `.env.example` to provide a more structured and comprehensive template for all server, transport, authentication, and service configurations.
+- **Dependencies**:
+  - Replaced `express` with `hono` and `@hono/node-server`.
+  - Added `bcryptjs` and `pg` for future authentication and database integration.
+  - Updated `package.json` and `package-lock.json` to reflect these changes.
+- **Authentication**: Refactored `src/mcp-server/transports/authentication/authMiddleware.ts` to be compatible with Hono's middleware context.
+- **Documentation**: Updated `docs/tree.md` to reflect the new files and updated `src/mcp-server/README.md` to mention Hono.
+
+## [1.4.7] - 2025-06-05
+
+### Added
+
+- **Configuration**: Added `.env.example` to provide a template for required environment variables.
+
+### Changed
+
+- **Build & Deployment**:
+  - Significantly expanded `.dockerignore` to provide a more comprehensive and structured list of files and directories to exclude from Docker builds, improving build efficiency and security.
+- **Dependencies**:
+  - Updated various dependencies in `package.json` and `package-lock.json`.
+- **Code Quality**:
+  - Minor code cleanup in `src/mcp-server/transports/httpTransport.ts` and `src/utils/internal/logger.ts`.
+- **Documentation**:
+  - Updated version to `1.4.7` in `README.md` and `package.json`.
+  - Updated `docs/tree.md` with the latest file structure.
+
+## [1.4.6] - 2025-06-04
+
+### Changed
+
+- **HTTP Transport Security (`src/mcp-server/transports/httpTransport.ts`)**:
+  - Implemented rate limiting middleware for the MCP HTTP endpoint to protect against abuse.
+  - Enhanced `isOriginAllowed` logic for more secure handling of `Access-Control-Allow-Origin` and `Access-Control-Allow-Credentials` headers, particularly for `null` origins.
+- **Utilities**:
+  - `idGenerator.ts`: Improved the `generateRandomString` method by implementing rejection sampling. This ensures a more uniform distribution of characters from the charset, enhancing the cryptographic quality of generated IDs.
+  - `sanitization.ts`: Strengthened the `sanitizeUrl` method to disallow `data:` and `vbscript:` pseudo-protocols in addition to the already blocked `javascript:`, further reducing XSS risks.
+- **Build & Versioning**:
+  - Updated project version to `1.4.6` in `package.json`, `package-lock.json`, and `README.md`.
+
+## [1.4.5] - 2025-06-04
+
+### Changed
+
+- **Project Configuration**:
+  - Updated `package.json`: Added `$schema` property for JSON Schema Store validation.
+- **Client Transports**:
+  - `stdioClientTransport.ts`: Refactored environment variable handling to only use explicitly defined environment variables from the server's configuration, removing the inheritance of the parent process's environment for improved security and predictability.
+- **Server Tools**:
+  - `catFactFetcher/logic.ts`:
+    - Added comments highlighting best practices for configurable API URLs and timeouts.
+    - Modified error logging for non-OK API responses to include the full `errorText` in `responseBodyBrief` instead of a truncated snippet.
+  - `imageTest/registration.ts`:
+    - Improved `RequestContext` handling during tool invocation to ensure better context linking and traceability.
+    - Wrapped tool registration logic in `ErrorHandler.tryCatch` for consistent error management during server initialization.
+- **Server Authentication**:
+  - `authMiddleware.ts`: Implemented stricter validation for JWT `scope` or `scp` claims. The middleware now returns a 401 Unauthorized error if these claims are missing, malformed, or result in an empty scope array, enhancing security by ensuring tokens have necessary permissions.
+- **Utilities**:
+  - `logger.ts`:
+    - Streamlined initialization by removing redundant log directory creation logic, now handled by the central configuration module (`src/config/index.ts`).
+    - Ensured the `initialized` flag is set only after the logger setup is fully complete.
+  - `idGenerator.ts`:
+    - Enhanced the `isValid` method to use the `charset` provided in options (or the default charset) when building the validation regular expression. This makes ID validation more accurate, especially when custom character sets are used for generating IDs.
+    - Added a JSDoc note to `normalizeId` regarding the behavior of `toUpperCase()` on the random part of an ID when custom charsets are involved.
+  - `sanitization.ts`:
+    - Updated JSDoc for `sanitizeInputForLogging` to detail the limitations of the `JSON.parse(JSON.stringify(input))` fallback method (used when `structuredClone` is unavailable), covering its impact on types like `Date`, `Map`, `Set`, `undefined` values, functions, `BigInt`, and circular references.
+- **Documentation**:
+  - Updated version badge in `README.md` to `1.4.5`.
+  - Updated generation timestamp in `docs/tree.md`.
+
+## [1.4.4] - 2025-06-04
+
+### Changed
+
+- **Development Workflow & CI**:
+  - Updated GitHub Actions workflow (`.github/workflows/publish.yml`) to use Node.js `20.x` (up from `18.x`) and enabled npm caching for faster builds.
+- **Project Configuration**:
+  - Restructured `.gitignore` for better organization and more comprehensive coverage of common IDE, OS, language, and build artifacts.
+  - Updated `package.json`:
+    - Bumped project version to `1.4.4`.
+    - Updated Node.js engine requirement to `>=20.0.0` (from `>=16.0.0`).
+    - Added `types` field to specify the main type definition file.
+    - Added `funding` information.
+  - Updated `package-lock.json` to reflect dependency updates and version bump.
+- **Dependencies**:
+  - Updated `openai` from `^5.0.2` to `^5.1.0`.
+  - Updated `zod` from `^3.25.49` to `^3.25.51`.
+- **Documentation**:
+  - Updated `.clinerules` (developer cheatsheet) to emphasize the importance of detailed descriptions for tool parameters (in Zod schemas) for LLM usability.
+  - Updated `docs/tree.md` with a new generation timestamp and corrected a minor path display for `echoToolLogic.ts` to `echoTool/logic.ts`.
+
+## [1.4.3] - 2025-06-04
+
+### Changed
+
+- **Refactoring**:
+  - Standardized tool file naming convention:
+    - Logic files renamed from `*Logic.ts` to `logic.ts` (e.g., `echoToolLogic.ts` -> `echoTool/logic.ts`, `catFactFetcherLogic.ts` -> `catFactFetcher/logic.ts`).
+    - Registration files renamed from `*Registration.ts` to `registration.ts` (e.g., `catFactFetcherRegistration.ts` -> `catFactFetcher/registration.ts`).
+  - Updated import paths in `src/mcp-server/server.ts`, `src/mcp-server/tools/catFactFetcher/index.ts`, and `src/mcp-server/tools/echoTool/registration.ts` to reflect the new file names.
+- **Documentation**:
+  - Updated `.clinerules` (developer cheatsheet) with:
+    - Enhanced explanations for HTTP security middleware order and graceful shutdown.
+    - More detailed descriptions of MCP SDK usage, including high-level vs. low-level abstractions, modular capability structure, and dynamic capabilities.
+    - Expanded examples and clarifications for core utilities (Logging, Error Handling, Request Context).
+    - Clarified resource `updates` and `blob` encoding.
+    - Added details on tool annotations and trust model.
+  - Updated `docs/tree.md` to reflect the refactored tool file structure.
+  - Updated the project structure tree within `CLAUDE.md` to align with `docs/tree.md`.
+- **Build**:
+  - Updated project version to `1.4.3` in `package.json` and `README.md`.
+
+## [1.4.2] - 2025-06-03
+
+### Changed
+
+- **LLM Providers**: Simplified LLM provider integration by removing the `llmFactory.ts` and associated barrel files (`src/services/index.ts`, `src/services/llm-providers/index.ts`, `src/services/llm-providers/openRouter/index.ts`). The `OpenRouterProvider` (`src/services/llm-providers/openRouterProvider.ts`) now handles its own client initialization directly.
+- **Dependencies**: No direct dependency changes in this version, but file structure simplification impacts imports.
+- **Documentation**:
+  - Updated `README.md` version badge to `1.4.2`.
+  - Updated `docs/tree.md` to reflect the simplified LLM provider file structure.
+- **Build**:
+  - Updated project version to `1.4.2` in `package.json` and `package-lock.json`.
+
 ## [1.4.1] - 2025-05-31
 
 ### Added
