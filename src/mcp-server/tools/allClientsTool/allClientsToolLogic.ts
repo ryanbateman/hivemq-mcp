@@ -83,7 +83,7 @@ export const processAllClientsMessage = async (
 
   try {
     // Process the message according to the requested mode
-    const url = new URL(`http://${config.HIVEMQ_HOST}:8000/api/v1/mqtt/clients/`);
+    const url = new URL(`http://${config.hiveMQHost}:8000/api/v1/mqtt/clients/`);
     url.searchParams.append("limit", params.limit.toString());
     if (params.cursor != null) {
       url.searchParams.append("cursor", params.cursor);
