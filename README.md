@@ -35,8 +35,8 @@ Get the example server running in minutes:
 
 5.  **Run the Server:**
 
-    - **as an integraiton with Claude Desktop:**  
-    Add it as a configured MCP server using Claude Desktop's settings.
+    - **as an integration with Claude Desktop:**  
+    Add it as a configured MCP server using Claude Desktop's settings (adjusting directory as necessary).
       ```json
       "hive_mcp":
         {
@@ -51,6 +51,11 @@ Get the example server running in minutes:
             }
         },
       ```
+    - **Testing it via an MCP server inspector tool (useful for debugging):**
+    ```bash
+    npx @modelcontextprotocol/inspector node dist/index.js
+    ```
+    This will start an inspector tool that you can access on your localhost at `http://127.0.0.1:6274/`, which is useful for debugging tools, resources, prompts, etc. 
     - **Via Stdio (Default):** Many MCP host applications will run this automatically using `stdio`. To run manually for testing:
       ```bash
       npm start
