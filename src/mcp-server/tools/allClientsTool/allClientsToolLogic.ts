@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { config } from "../../../config/index.js";
 import { fetchWithTimeout, logger, type RequestContext } from "../../../utils/index.js";
 import { ClientId, Clients } from "../../../types-global/hivemq.js";
 import { McpError, BaseErrorCode } from "../../../types-global/errors.js";
@@ -82,7 +83,7 @@ export const processAllClientsMessage = async (
 
   try {
     // Process the message according to the requested mode
-    const url = new URL("http://localhost:8000/api/v1/mqtt/clients/");
+    const url = new URL(`http://${config.HIVEMQ_HOST}:8000/api/v1/mqtt/clients/`);
     url.searchParams.append("limit", params.limit.toString());
     if (params.cursor != null) {
       url.searchParams.append("cursor", params.cursor);
@@ -105,7 +106,7 @@ export const processAllClientsMessage = async (
           ...context,
           httpStatusCode: response.status,
           responseBodyBrief: errorText.substring(0, 200), // Log a snippet of the response
-          errorSource: "CatFactApiNonOkResponse",
+          errorSource: "AllClientsNonOkResponse",
         },
       );
     }

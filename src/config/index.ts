@@ -100,6 +100,7 @@ const EnvSchema = z.object({
   MCP_HTTP_PORT: z.coerce.number().int().positive().default(3010),
   /** HTTP server host (if MCP_TRANSPORT_TYPE is "http"). Default: "127.0.0.1". */
   MCP_HTTP_HOST: z.string().default("127.0.0.1"),
+  HIVEMQ_HOST: z.string().default("127.0.0.1"),
   /** Optional. Comma-separated allowed origins for CORS (HTTP transport). */
   MCP_ALLOWED_ORIGINS: z.string().optional(),
   /** Optional. Secret key (min 32 chars) for auth tokens (HTTP transport). CRITICAL for production. */
@@ -290,6 +291,8 @@ export const config = {
   mcpHttpPort: env.MCP_HTTP_PORT,
   /** HTTP server host (if http transport). From `MCP_HTTP_HOST` env var. Default: "127.0.0.1". */
   mcpHttpHost: env.MCP_HTTP_HOST,
+  /** HTTP server host (if http transport). From `MCP_HTTP_HOST` env var. Default: "127.0.0.1". */
+  hiveMQHost: env.HIVEMQ_HOST,
   /** Array of allowed CORS origins (http transport). From `MCP_ALLOWED_ORIGINS` (comma-separated). */
   mcpAllowedOrigins: env.MCP_ALLOWED_ORIGINS?.split(",")
     .map((origin) => origin.trim())

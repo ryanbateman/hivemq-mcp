@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { config } from "../../../config/index.js";
 import { fetchWithTimeout, logger, type RequestContext } from "../../../utils/index.js";
 import { McpError, BaseErrorCode } from "../../../types-global/errors.js";
 
@@ -50,7 +51,7 @@ export const processHealthStatusRequest = async (
 
   try {
     // Process the message according to the requested mode
-    const url = new URL("http://localhost:8889/api/v1/health/");
+    const url = new URL(`http://${config.hiveMQHost}:8889/api/v1/health/`);
     
     // Fetch and process the response
     const response = await fetchWithTimeout(

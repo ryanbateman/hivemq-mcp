@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { config } from "../../../config/index.js";
 import { fetchWithTimeout, logger, type RequestContext } from "../../../utils/index.js";
 import { ClientDetails, ClientId, Clients } from "../../../types-global/hivemq.js";
 import { McpError, BaseErrorCode } from "../../../types-global/errors.js";
@@ -67,7 +68,7 @@ export const processClientDetailsMessage = async (
 
   try {
     // Process the message according to the requested mode
-    const url = new URL(`http://localhost:8000/api/v1/mqtt/clients/${params.clientId}`);
+    const url = new URL(`http://${config.hiveMQHost}:8000/api/v1/mqtt/clients/${params.clientId}`);
 
     // Fetch and process the response
     const response = await fetchWithTimeout(
