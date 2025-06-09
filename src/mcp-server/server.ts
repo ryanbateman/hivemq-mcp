@@ -22,7 +22,7 @@ import { registerEchoResource } from "./resources/echoResource/index.js";
 import { registerAllClientsTool } from "./tools/allClientsTool/index.js";
 import { registerHealthStatusTool } from "./tools/healthStatusTool/index.js";
 import { registerClientDetailsTool } from "./tools/clientDetailsTool/index.js";
-import { registerCatFactFetcherTool } from "./tools/catFactFetcher/index.js";
+import { registerClientSubscriptionsTool } from "./tools/clientSubscriptionsTool/index.js";
 import { registerEchoTool } from "./tools/echoTool/index.js";
 import { startHttpTransport } from "./transports/httpTransport.js";
 import { connectStdioTransport } from "./transports/stdioTransport.js";
@@ -87,6 +87,7 @@ async function createMcpServerInstance(): Promise<McpServer> {
     await registerEchoTool(server);
     await registerAllClientsTool(server);
     await registerClientDetailsTool(server);
+    await registerClientSubscriptionsTool(server);
     await registerHealthStatusTool(server);
     logger.info("Resources and tools registered successfully", context);
   } catch (err) {
