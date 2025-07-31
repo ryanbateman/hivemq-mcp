@@ -5,11 +5,17 @@ A simple prototype of an [Model Context Protocol (MCP) Server](https://modelcont
 ***
 ## ⚠️ WARNING
 
-This is a prototype and not intended for commercial or production use. Use is entirely at your own risk.   
-I believe that AI tools and Large Language Models (LLMs) are not a good method of managing infrastructure generally as they are fundamentally non-deterministic. I also believe that most people who use them overestimate their ability 'reason' and the veracity of what they produce.  
-This MCP server is built with this understanding - it is read-only, focused on extracting health and status data, and cannot be used to directly manage any aspect of the HiveMQ Broker.  
+While I am currently an employee of HiveMQ, this software was written by me personally in my own spare time and is not directly associated with or endorsed by HiveMQ. Views expressed below on AI are a subset of my personal perspectives and do not reflect the views of HiveMQ.  
 
-Even so, for example, the number of REST API calls, the contents of the REST calls it makes to the broker, and the tone and accuracy of the information it conveys are entirely probabilistic and may wildly vary based on the LLM client you are integrating it with. Where one LLM client may make 5 REST API calls, another may make 1. Where one LLM may describe your broker as 'healthy' based on its (probablistic, language-based) interpretation of the API response, another may describe it as 'down' or broken.  
+This is a prototype, built to further my own understanding, and not intended for commercial or production use. Use is entirely at your own risk.  
+
+I personally believe that AI tools and Large Language Models (LLMs) are not a good method of managing infrastructure generally as they are fundamentally non-deterministic. I also believe that most people who use them overestimate their ability 'reason' and the veracity of what they produce.  
+
+This MCP server is built with this cautious mind-set - it is read-only, focused on extracting health and status data, and cannot be used to directly manage any aspect of the HiveMQ Broker.  
+
+Even so, as examples, the number of REST API calls, the contents of the REST calls it makes to the broker, and the tone and accuracy of the information it conveys are entirely probabilistic and may wildly vary based on the LLM you are integrating it with. One LLM client may make 5 REST API calls while another may make 1. Where one LLM may describe your broker as 'healthy' based on its (probablistic, language-based) interpretation of the API response, another may describe it as 'down' or broken.  
+
+This is, in my personal opinion, a terrible basis for managing critical software.  
 ***
 
 ## 🏁 Quick Start
