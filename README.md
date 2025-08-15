@@ -9,7 +9,7 @@ While I am currently an employee of HiveMQ, this software was written by me pers
 
 This is a prototype, built to further my own understanding, and not intended for commercial or production use. Use is entirely at your own risk.  
 
-I personally believe that AI tools and Large Language Models (LLMs) are not a good method of managing infrastructure generally as they are fundamentally non-deterministic. I also believe that most people who use them overestimate their ability 'reason' and the veracity of what they produce.  
+I personally believe that AI tools and Large Language Models (LLMs) are not a good method of managing infrastructure generally as they are (practically speaking) non-deterministic. I also believe that most people who use them overestimate their ability 'reason' and the veracity of what they produce.  
 
 This MCP server is built with this cautious mind-set - it is read-only, focused on extracting health and status data, and cannot be used to directly manage any aspect of the HiveMQ Broker.  
 
